@@ -1,0 +1,16 @@
+# Sensitiv konfigurasjon – skal IKKE på GitHub
+config.yaml
+
+# Database og logg – lokale filer
+seen_ads.db
+monitor.log
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Facebook cookies
+facebook_cookies.txt

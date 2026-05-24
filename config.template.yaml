@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────────
+#  Stabæk Drakt Monitor – mal for konfigurasjon
+#  Kopier denne til config.yaml og fyll inn verdiene
+# ─────────────:────────────────────────────────────
+
+telegram:
+  bot_token: "DIN_BOT_TOKEN_HER"
+  chat_id:   "DIN_CHAT_ID_HER"
+
+search:
+  interval_minutes: 6
+
+  finn_keywords:
+    - "stabæk drakt"
+    - "stabæk fotballdrakt"
+    - "stabæk retro"
+    - "stabæk vintage"
+    - "stabæk diadora"
+    - "stabæk umbro"
+    - "stabæk 90"
+
+  ebay_keywords:
+    - "Stabaek shirt"
+    - "Stabaek football shirt"
+    - "Stabaek vintage"
+    - "Stabaek Norway shirt"
+
+  tise_keywords:
+    - "stabæk drakt"
+    - "stabæk fotballdrakt"
+    - "stabæk retro"
+
+  vinted_keywords:
+    - "stabæk drakt"
+    - "stabæk"
+
+  forza_keywords:
+    - "stabæk"
+
+  cfs_keywords:
+    - "stabaek"
+    - "stabæk"
+
+  tradera_keywords:
+    - "stabæk drakt"
+    - "stabæk"
+
+  blocket_keywords:
+    - "stabæk drakt"
+    - "stabæk"
+
+  dba_keywords:
+    - "stabæk trøje"
+    - "stabæk drakt"
+
+  depop_keywords:
+    - "Stabaek shirt"
+    - "Stabaek football"
+
+  vfs_keywords:
+    - "stabaek"
+    - "stabæk"
+
+filters:
+  required_terms:
+    - "stabæk"
+    - "stabaek"
+
+  high_relevance_terms:
+    - "grønn"
+    - "grønne"
+    - "erme"
+    - "ermer"
+    - "green sleeve"
+    - "retro"
+    - "vintage"
+    - "gammel"
+    - "90-tall"
+    - "90s"
+    - "klassisk"
+    - "original"
+    - "diadora"
+    - "umbro"
+
+  vintage_year_range:
+    from: 1993
+    to: 2003
+
+  exclude_year_terms:
+    - "2024"
+    - "2025"
+    - "2026"
+
+  include_children: false
+
+database:
+  path: "seen_ads.db"
+
+logging:
+  file: "monitor.log"
+  level: "INFO"
