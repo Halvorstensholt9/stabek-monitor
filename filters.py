@@ -34,7 +34,8 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     # ── 1. Required term ────────────────────────────────────────────────
     # Godtar også annonser der en kjent Stabæk-spiller nevnes (uten klubbnavn)
     PLAYER_NAMES = {
-        "allanzinho", "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
+        "veigar", "nannskog", "allanzinho", "andresen",
+        "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
         "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt", "solbakken",
         "lydersen", "riseth", "fjørtoft",
     }
