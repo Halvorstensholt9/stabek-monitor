@@ -77,12 +77,23 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     score = 0
     reasons = []
 
-    # Green sleeves = jackpot
-    if ("grønn" in text or "grønne" in text or "green" in text) and (
-        "erme" in text or "ermer" in text or "sleeve" in text
-    ):
+    # Grønne ermer = jackpot – fanger alle måter folk skriver det på:
+    # "grønne ermer", "grønn arm", "green sleeve", "green arm" osv.
+    _GREEN        = ("grønn", "grønne", "green")
+    _SLEEVE_WORDS = ("erme", "ermer", "sleeve", "sleeves")
+    # "arm"/"armer" brukes som ordgrense-match for å unngå falske treff
+    _ARM_RE       = re.compile(r"\barm(er)?\b")
+
+    has_green  = any(w in text for w in _GREEN)
+    has_sleeve = any(w in text for w in _SLEEVE_WORDS) or bool(_ARM_RE.search(text))
+
+    if has_green and has_sleeve:
         score += 3
-        reasons.append("grønne ermer")
+        reasons.append("🟢 GRØNNE ERMER")
+    elif has_green:
+        # "grønn" nevnt uten eksplisitt erme-ord – fortsatt relevant
+        score += 2
+        reasons.append("grønn farge nevnt")
 
     high_terms = [t.lower() for t in cfg.get("high_relevance_terms", [])]
     matched = [t for t in high_terms if t in text]
