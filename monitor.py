@@ -38,6 +38,7 @@ from scrapers.catawiki import CatawikiScraper
 from scrapers.thefootballidiots import FootballIdiotsScraper
 from scrapers.draktgata import DraktgataScraper
 from scrapers.marktplaats import MarktplaatsScraper
+from scrapers.grailed import GrailedScraper
 # from scrapers.facebook import FacebookScraper  # Aktiver når du er klar
 
 
@@ -175,25 +176,27 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     tfi       = FootballIdiotsScraper()
     draktgata   = DraktgataScraper()
     marktplaats = MarktplaatsScraper()
+    grailed     = GrailedScraper()
 
     # (navn, søkefunksjon, nøkkelordliste, pause_sek_mellom_søk)
     sources = [
-        ("finn",       finn.search,        s.get("finn_keywords",      []), 4.0),
-        ("ebay",       ebay.search,        s.get("ebay_keywords",      []), 2.0),
-        ("tise",       tise.search,        s.get("tise_keywords",      []), 3.0),
-        ("vinted",     vinted.search,      s.get("vinted_keywords",    []), 3.0),
-        ("forza",      forza.search,       s.get("forza_keywords",     []), 2.0),
-        ("cfs",        cfs.search,         s.get("cfs_keywords",       []), 2.0),
-        ("tradera",    trad.search,        s.get("tradera_keywords",   []), 2.0),
-        ("blocket",    blk.search,         s.get("blocket_keywords",   []), 2.0),
-        ("dba",        dba.search,         s.get("dba_keywords",       []), 2.0),
-        ("depop",      dep.search,         s.get("depop_keywords",     []), 2.0),
-        ("vfs",        vfs.search,         s.get("vfs_keywords",       []), 2.0),
-        ("reddit",     reddit.search,      s.get("reddit_keywords",    []), 2.0),
-        ("catawiki",   cata.search,        s.get("catawiki_keywords",  []), 3.0),
-        ("tfi",        tfi.search,         s.get("tfi_keywords",       []), 2.0),
+        ("finn",        finn.search,         s.get("finn_keywords",        []), 4.0),
+        ("ebay",        ebay.search,         s.get("ebay_keywords",        []), 2.0),
+        ("tise",        tise.search,         s.get("tise_keywords",        []), 3.0),
+        ("vinted",      vinted.search,       s.get("vinted_keywords",      []), 3.0),
+        ("forza",       forza.search,        s.get("forza_keywords",       []), 2.0),
+        ("cfs",         cfs.search,          s.get("cfs_keywords",         []), 2.0),
+        ("tradera",     trad.search,         s.get("tradera_keywords",     []), 2.0),
+        ("blocket",     blk.search,          s.get("blocket_keywords",     []), 2.0),
+        ("dba",         dba.search,          s.get("dba_keywords",         []), 2.0),
+        ("depop",       dep.search,          s.get("depop_keywords",       []), 2.0),
+        ("vfs",         vfs.search,          s.get("vfs_keywords",         []), 2.0),
+        ("reddit",      reddit.search,       s.get("reddit_keywords",      []), 2.0),
+        ("catawiki",    cata.search,         s.get("catawiki_keywords",    []), 3.0),
+        ("tfi",         tfi.search,          s.get("tfi_keywords",         []), 2.0),
         ("draktgata",   draktgata.search,    s.get("draktgata_keywords",   []), 2.0),
         ("marktplaats", marktplaats.search,  s.get("marktplaats_keywords", []), 2.0),
+        ("grailed",     grailed.search,      s.get("grailed_keywords",     []), 2.0),
     ]
 
     logger.info("══ Starter sjekk (%d kilder parallelt) ══", len(sources))
