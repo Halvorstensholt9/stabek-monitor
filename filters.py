@@ -45,36 +45,7 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         if not any(p in text for p in PLAYER_NAMES):
             return False, 0, "mangler stabæk"
 
-    # ── 2. Hard excludes: kun helt åpenbare ny-sesong-drakter ───────────
-    for phrase in NEW_SEASON_PHRASES:
-        if phrase in text:
-            return False, 0, f"ny-sesong ({phrase})"
-
-    exclude = [t.lower() for t in cfg.get("exclude_year_terms", [])]
-    if any(t in text for t in exclude):
-        # Tillat likevel hvis retro/vintage/signed er nevnt
-        is_collector = any(
-            w in text for w in ("retro", "vintage", "gammel", "original",
-                                "signert", "signed", "matchworn", "match worn")
-        )
-        if not is_collector:
-            return False, 0, "ny-sesong årstall"
-
-    # ── 3. Children's sizes ─────────────────────────────────────────────
-    if not cfg.get("include_children", False):
-        if any(c in text.split() for c in CHILD_INDICATORS):
-            is_collector = any(
-                w in text for w in ("retro", "vintage", "original", "gammel",
-                                    "signert", "signed")
-            )
-            if not is_collector:
-                return False, 0, "barnestørrelse"
-
-    # ── 4. Scoring ───────────────────────────────────────────────────────
-    score = 0
-    reasons = []
-
-    # Grønne ermer = jackpot
+    # ── 2. Sjekk grønne ermer FØR alt annet ────────────────────────────
     _GREEN        = ("grønn", "grønne", "green", "grön", "grøn")
     _SLEEVE_WORDS = ("erme", "ermer", "sleeve", "sleeves", "ärmar", "ärm",
                      "ærmer", "ærme")
@@ -82,12 +53,43 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
 
     has_green  = any(w in text for w in _GREEN)
     has_sleeve = any(w in text for w in _SLEEVE_WORDS) or bool(_ARM_RE.search(text))
+    is_green_sleeve = has_green and has_sleeve
 
-    if has_green and has_sleeve:
-        score += 4
+    # ── 3. Hard excludes – grønne ermer passerer ALLTID ─────────────────
+    if not is_green_sleeve:
+        for phrase in NEW_SEASON_PHRASES:
+            if phrase in text:
+                return False, 0, f"ny-sesong ({phrase})"
+
+        exclude = [t.lower() for t in cfg.get("exclude_year_terms", [])]
+        if any(t in text for t in exclude):
+            is_collector = any(
+                w in text for w in ("retro", "vintage", "gammel", "original",
+                                    "signert", "signed", "matchworn", "match worn")
+            )
+            if not is_collector:
+                return False, 0, "ny-sesong årstall"
+
+    # ── 4. Children's sizes ─────────────────────────────────────────────
+    if not cfg.get("include_children", False):
+        if any(c in text.split() for c in CHILD_INDICATORS):
+            is_collector = any(
+                w in text for w in ("retro", "vintage", "original", "gammel",
+                                    "signert", "signed")
+            ) or is_green_sleeve
+            if not is_collector:
+                return False, 0, "barnestørrelse"
+
+    # ── 5. Scoring ───────────────────────────────────────────────────────
+    score = 0
+    reasons = []
+
+    # 🟢 GRØNNE ERMER – høyeste prioritet, dominerer alt annet
+    if is_green_sleeve:
+        score += 10
         reasons.append("🟢 GRØNNE ERMER")
     elif has_green:
-        score += 2
+        score += 3
         reasons.append("grønn farge")
 
     # High-relevance terms

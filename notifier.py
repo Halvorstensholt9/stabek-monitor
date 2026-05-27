@@ -45,17 +45,19 @@ class Telegram:
             alarm_lines = [
                 "🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨",
                 "<b>GRØNNE ERMER FUNNET!</b>",
-                f"Score: {score}",
-                "🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨",
+                f"<b>{title}</b>",
             ]
+            if price:
+                alarm_lines.append(f"💰 {price}")
+            if url:
+                alarm_lines.append(f'<a href="{url}">👉 GÅ TIL ANNONSEN NÅ</a>')
+            alarm_lines.append("🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨")
             self.send_text("\n".join(alarm_lines))
 
         # ── Header avhengig av prioritet ─────────────────────────────────────
-        if is_green and score >= 6:
-            header = "🟢🟢🟢 JACKPOT – GRØNNE ERMER 🟢🟢🟢"
-        elif is_green:
-            header = "🟢🟢 GRØNNE ERMER 🟢🟢"
-        elif score >= 4:
+        if is_green:
+            header = "🟢🟢🟢 GRØNNE ERMER 🟢🟢🟢"
+        elif score >= 5:
             header = "⭐⭐ HØYPRIORITERT"
         elif score >= 2:
             header = "⭐"
