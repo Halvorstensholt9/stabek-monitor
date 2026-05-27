@@ -122,8 +122,8 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
 
     reason_str = " | ".join(reasons) if reasons else "Stabæk-drakt"
 
-    # ── 5. Send KUN grønne ermer ────────────────────────────────────────
-    if not is_green_sleeve:
-        return False, 0, "ikke grønne ermer"
+    # ── 5. Send grønne ermer ELLER vintage-årstall ──────────────────────
+    if not is_green_sleeve and not has_vintage_year:
+        return False, 0, "ingen grønn arm eller vintage-årstall"
 
     return True, score, reason_str

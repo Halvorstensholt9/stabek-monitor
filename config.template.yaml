@@ -609,8 +609,8 @@ filters:
     - "2003"
 
   vintage_year_range:
-    from: 1990
-    to: 2003
+    from: 1980
+    to: 2004
 
   exclude_year_terms:
     - "2024"
