@@ -34,10 +34,14 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     # ── 1. Required term ────────────────────────────────────────────────
     # Godtar også annonser der en kjent Stabæk-spiller nevnes (uten klubbnavn)
     PLAYER_NAMES = {
+        # Spillere
         "veigar", "nannskog", "allanzinho", "andresen",
         "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
-        "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt", "solbakken",
-        "lydersen", "riseth", "fjørtoft",
+        "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt",
+        "lydersen", "riseth", "fjørtoft", "bakircioglu",
+        "kennedy", "christer george", "dorsin", "hagen",
+        # Trenere
+        "by rise", "sollied",
     }
     required = [t.lower() for t in cfg.get("required_terms", [])]
     if not any(t in text for t in required):

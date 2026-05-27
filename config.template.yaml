@@ -10,76 +10,192 @@ telegram:
 search:
   interval_minutes: 3
 
+  # ── Finn.no ──────────────────────────────────────────────────────────────
   finn_keywords:
+    # Basis
     - "stabæk drakt"
     - "stabæk fotballdrakt"
-    - "stabæk retro"
-    - "stabæk vintage"
+    - "stabæk trøye"
+    - "stabæk IF drakt"
+    - "stabaek drakt"
+    # Grønn arm – HØYESTE PRIORITET
+    - "stabæk grønn"
+    - "stabæk grønne ermer"
+    - "stabæk grønn arm"
+    - "stabæk langermet"
+    - "stabæk grønn drakt"
+    - "stabæk hvit grønn"
+    # Merker/leverandører
     - "stabæk diadora"
     - "stabæk umbro"
-    - "stabæk 90"
-    - "stabæk trøye"
-    - "stabæk hjemmedrakt"
-    - "stabæk bortedrakt"
-    - "stabæk grønn drakt"
-    - "stabæk IF drakt"
-    - "stabæk fotball drakt"
+    - "stabæk adidas"
+    # Stil
+    - "stabæk retro"
+    - "stabæk vintage"
     - "stabæk gammel drakt"
     - "stabæk klassisk drakt"
+    - "stabæk hjemmedrakt"
+    - "stabæk bortedrakt"
+    - "stabæk signert"
+    - "stabæk matchworn"
+    # Årstall
+    - "stabæk 1990"
+    - "stabæk 1991"
+    - "stabæk 1992"
+    - "stabæk 1993"
+    - "stabæk 1994"
+    - "stabæk 1995"
+    - "stabæk 1996"
+    - "stabæk 1997"
+    - "stabæk 1998"
+    - "stabæk 1999"
+    - "stabæk 2000"
+    - "stabæk 2001"
+    - "stabæk 90"
+    - "stabæk 90-tall"
+    - "stabæk 98"
+    # Spillere
+    - "stabæk allanzinho"
+    - "stabæk veigar"
+    - "stabæk nannskog"
+    - "stabæk belsvik"
+    - "stabæk rushfeldt"
+    - "stabæk kjønsberg"
+    - "stabæk andresen"
+    - "stabæk leonhardsen"
+    # Trener
+    - "stabæk ola by rise"
+    # Kontekst
+    - "stabæk tippeligaen"
+    - "stabæk fotball drakt"
 
+  # ── eBay (5 markeder, søkes parallelt) ─────────────────────────────────
   ebay_keywords:
+    # Basis klubbnavn – med og uten æ
     - "Stabaek shirt"
-    - "Stabaek football shirt"
-    - "Stabaek vintage"
-    - "Stabaek Norway shirt"
     - "Stabæk shirt"
+    - "Stabaek football shirt"
     - "Stabaek jersey"
+    - "Stabæk jersey"
     - "Stabaek IF shirt"
     - "Stabaek IF jersey"
-    - "Stabaek Diadora"
-    - "Stabaek Umbro"
     - "Stabæk football"
-    - "Stabæk jersey"
-    - "Stabaek 90s"
+    # Grønn arm
+    - "Stabaek green sleeve"
+    - "Stabaek green shirt"
+    - "Stabæk green"
+    - "Stabæk long sleeve"
+    - "Stabaek long sleeve"
+    - "Stabaek longsleeve"
+    # Merker
+    - "Stabaek Diadora"
+    - "Stabæk Diadora"
+    - "Stabaek Umbro"
+    - "Stabæk Umbro"
+    - "Stabaek Adidas"
+    # Stil
+    - "Stabaek vintage"
+    - "Stabæk vintage"
     - "Stabaek retro"
-    - "Norway Stabæk"
+    - "Stabæk retro"
+    - "Stabaek 90s"
+    # Årstall
+    - "Stabaek 1993 shirt"
+    - "Stabaek 1994 shirt"
+    - "Stabaek 1995 shirt"
+    - "Stabaek 1996 shirt"
+    - "Stabaek 1997 shirt"
+    - "Stabaek 1998 shirt"
+    - "Stabaek 1999 shirt"
+    - "Stabaek 2000 shirt"
+    # Norge-søk for ukjente selgere
+    - "Stabaek Norway shirt"
+    - "Stabæk Norway"
+    - "Norway Diadora football shirt"
+    - "Norway vintage Diadora shirt"
+    - "Norway 90s football shirt green"
+    # Spillere
     - "Allanzinho Stabaek"
     - "Allanzinho shirt"
+    - "Allanzinho jersey"
     - "Veigar Páll shirt"
     - "Veigar Stabaek"
+    - "Veigar Gunnarsson shirt"
     - "Nannskog Stabaek"
     - "Nannskog shirt"
     - "Kjønsberg Stabæk"
     - "Belsvik Stabæk"
     - "Rushfeldt Stabæk"
+    # Matchworn/signert
+    - "Stabaek match worn"
+    - "Stabæk signed"
 
+  # ── Tise (Norge) ────────────────────────────────────────────────────────
   tise_keywords:
     - "stabæk drakt"
     - "stabæk fotballdrakt"
-    - "stabæk retro"
     - "stabæk trøye"
     - "stabæk IF"
+    - "stabaek"
+    - "stabæk retro"
     - "stabæk vintage"
-    - "stabaek drakt"
-    - "stabæk 90"
+    # Grønn arm
     - "stabæk grønn"
+    - "stabæk grønne ermer"
+    - "stabæk grønn arm"
+    - "stabæk langermet"
+    - "stabæk hvit grønn"
+    # Merker
+    - "stabæk diadora"
+    - "stabæk umbro"
+    - "stabæk adidas"
+    # Drakttyper
     - "stabæk hjemmedrakt"
+    - "stabæk bortedrakt"
+    - "stabæk signert"
+    # Årstall
+    - "stabæk 1994"
+    - "stabæk 1995"
+    - "stabæk 1996"
+    - "stabæk 1997"
+    - "stabæk 1998"
+    - "stabæk 1999"
+    - "stabæk 90"
+    - "stabæk 98"
+    # Spillere
+    - "stabæk allanzinho"
+    - "stabæk veigar"
+    - "stabæk nannskog"
+    - "stabæk belsvik"
+    - "stabæk kjønsberg"
 
+  # ── Vinted.com ──────────────────────────────────────────────────────────
   vinted_keywords:
-    - "stabæk drakt"
     - "stabæk"
+    - "stabaek"
+    - "stabæk drakt"
     - "stabæk trøye"
     - "stabæk fotballdrakt"
-    - "stabaek"
     - "stabæk IF"
     - "stabæk retro"
     - "stabæk vintage"
+    - "stabæk grønn"
+    - "stabæk langermet"
+    - "stabæk diadora"
+    - "stabæk umbro"
 
+  # ── Forzasecondhand.no ──────────────────────────────────────────────────
   forza_keywords:
     - "stabæk"
     - "stabaek"
     - "stabæk IF"
+    - "stabæk drakt"
+    - "stabæk grønn"
+    - "allanzinho"
+    - "veigar"
+    - "nannskog"
 
+  # ── Classic Football Shirts (UK) ────────────────────────────────────────
   cfs_keywords:
     - "stabaek"
     - "stabæk"
@@ -91,47 +207,93 @@ search:
     - "stabaek Diadora"
     - "stabæk Umbro"
     - "stabaek Umbro"
+    - "Allanzinho"
+    - "Veigar"
+    - "Nannskog"
 
+  # ── Tradera.se (Sverige) ────────────────────────────────────────────────
   tradera_keywords:
-    - "stabæk drakt"
     - "stabæk"
+    - "stabaek"
+    - "stabæk drakt"
     - "stabæk tröja"
     - "stabæk fotbollströja"
     - "stabæk IF"
-    - "stabaek"
     - "stabæk retro"
     - "stabæk vintage"
+    # Grønn arm på svensk
+    - "stabæk grön"
+    - "stabæk gröna ärmar"
+    - "stabæk långärmad"
+    # Årstall
+    - "stabæk 1994"
+    - "stabæk 1995"
+    - "stabæk 1996"
+    - "stabæk 1997"
+    - "stabæk 1998"
+    # Spillere
+    - "allanzinho stabæk"
+    - "veigar stabæk"
+    - "nannskog stabæk"
 
+  # ── Blocket.se (Sverige) ────────────────────────────────────────────────
   blocket_keywords:
-    - "stabæk drakt"
     - "stabæk"
+    - "stabaek"
+    - "stabæk drakt"
     - "stabæk tröja"
     - "stabæk fotbollströja"
     - "stabæk IF"
-    - "stabaek"
     - "stabæk retro"
+    - "stabæk vintage"
+    - "stabæk gröna ärmar"
+    - "stabæk 1996"
+    - "stabæk 1997"
+    - "stabæk 1998"
 
+  # ── DBA.dk (Danmark) ────────────────────────────────────────────────────
   dba_keywords:
+    - "stabæk"
+    - "stabaek"
     - "stabæk trøje"
-    - "stabæk drakt"
     - "stabæk fodboldtrøje"
     - "stabæk IF"
-    - "stabaek"
     - "stabæk retro"
     - "stabæk vintage"
+    # Grønn arm på dansk
+    - "stabæk grønne ærmer"
+    - "stabæk grøn"
+    - "stabæk langærmet"
+    # Årstall
+    - "stabæk 1995"
+    - "stabæk 1996"
+    - "stabæk 1997"
+    - "stabæk 1998"
 
+  # ── Depop (internasjonal) ───────────────────────────────────────────────
   depop_keywords:
     - "Stabaek shirt"
-    - "Stabaek football"
     - "Stabæk shirt"
+    - "Stabaek football"
+    - "Stabæk football"
     - "Stabaek jersey"
     - "Stabæk jersey"
     - "Stabaek Diadora"
     - "Stabaek Umbro"
-    - "Stabæk football"
     - "Stabaek IF"
     - "Norway vintage football shirt"
+    # Grønn arm
+    - "Stabaek green"
+    - "Stabaek green sleeve"
+    - "Stabæk long sleeve"
+    # Spillere
+    - "Allanzinho"
+    - "Allanzinho Stabaek"
+    - "Veigar Stabæk"
+    - "Nannskog"
+    - "Nannskog Stabaek"
 
+  # ── Vintage Football Shirts (UK) ────────────────────────────────────────
   vfs_keywords:
     - "stabaek"
     - "stabæk"
@@ -143,7 +305,10 @@ search:
     - "stabaek Diadora"
     - "stabæk Umbro"
     - "stabaek Umbro"
+    - "Allanzinho"
+    - "Veigar"
 
+  # ── Reddit (r/footballjerseys + r/classicfootball + r/soccer_jerseys) ──
   reddit_keywords:
     - "stabæk"
     - "stabaek"
@@ -151,27 +316,30 @@ search:
     - "Stabaek shirt"
     - "Stabæk jersey"
     - "Stabaek jersey"
+    - "Allanzinho"
+    - "Veigar"
+    - "Nannskog"
+    - "Norway vintage Diadora"
 
+  # ── Catawiki (internasjonal auksjon) ───────────────────────────────────
   catawiki_keywords:
     - "stabaek shirt"
     - "stabæk shirt"
     - "stabaek football"
     - "stabæk"
     - "stabaek"
-
-  tfi_keywords:
-    - "stabaek"
-    - "stabæk"
-    - "stabæk IF"
-    - "stabaek IF"
-    - "stabæk Norway"
-    - "stabaek Norway"
+    - "Allanzinho"
+    - "Veigar"
+    - "Norway Diadora"
 
   # ── Draktgata.no (norsk vintage-draktbutikk) ────────────────────────────
   draktgata_keywords:
     - "stabæk"
     - "stabaek"
     - "stabæk IF"
+    - "allanzinho"
+    - "veigar"
+    - "nannskog"
 
   # ── Marktplaats.nl (Nederland) ──────────────────────────────────────────
   marktplaats_keywords:
@@ -187,6 +355,20 @@ search:
     - "stabaek Adidas"
     - "Norway vintage football shirt"
     - "Noorwegen voetbalshirt vintage"
+    - "Allanzinho"
+    - "Veigar"
+
+  # ── The Football Idiots (britisk vintage-butikk) ────────────────────────
+  tfi_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "stabæk IF"
+    - "stabaek IF"
+    - "stabæk Norway"
+    - "stabaek Norway"
+    - "Allanzinho"
+    - "Veigar"
+    - "Norway Diadora"
 
   # ── Grailed (internasjonal drakt-/kleskjøp) ─────────────────────────────
   grailed_keywords:
@@ -196,22 +378,39 @@ search:
     - "Stabæk shirt"
     - "Stabaek jersey"
     - "Stabaek Diadora"
+    - "Stabæk Diadora"
     - "Stabaek Umbro"
     - "Stabaek Adidas"
     - "Norway vintage football"
-
-  # ── Vintage Football Shirts (UK) ────────────────────────────────────────
-  vfs_keywords:
-    - "stabaek"
-    - "stabæk"
-    - "stabæk IF"
-    - "norway"
+    - "Norway Diadora vintage"
+    # Grønn arm
+    - "Stabaek green"
+    - "Stabæk green sleeve"
+    - "Stabæk long sleeve"
+    - "Stabaek longsleeve"
+    # Årstall
+    - "Stabæk 1990s"
+    - "Stabæk 1996"
+    - "Stabæk 1997"
+    - "Stabæk 1998"
+    # Spillere
+    - "Allanzinho"
+    - "Allanzinho Stabæk"
+    - "Veigar Páll"
+    - "Veigar Gunnarsson"
+    - "Veigar Stabaek"
+    - "Nannskog"
+    - "Nannskog Stabaek"
+    - "Kjønsberg shirt"
+    - "Belsvik Stabæk"
+    - "Rushfeldt shirt"
 
   # ── Cult Kits (UK vintage-butikk) ───────────────────────────────────────
   cultkits_keywords:
     - "stabaek"
     - "stabæk"
     - "norway"
+    - "Allanzinho"
 
 filters:
   required_terms:
@@ -219,18 +418,51 @@ filters:
     - "stabaek"
 
   high_relevance_terms:
+    # ── Grønn arm – JACKPOT ─────────────────────────────────────────────────
     - "grønn"
     - "grønne"
     - "grønn arm"
+    - "grønne armer"
+    - "grønn erm"
     - "grønne ermer"
+    - "grønn erme"
+    - "grønnstripe"
+    - "grønn stripe"
+    - "grønn kant"
+    - "hvit grønn"
+    - "hvit og grønn"
     - "green sleeve"
     - "green sleeves"
+    - "green arm"
+    - "green arms"
+    - "green panel"
+    - "green stripe"
+    - "green trim"
+    - "white green"
+    - "white and green"
+    - "green and white"
+    # ── Ermer/sleeve ────────────────────────────────────────────────────────
     - "erme"
     - "ermer"
     - "long sleeve"
     - "longsleeve"
     - "long-sleeve"
     - "langermet"
+    - "langärmat"
+    - "langärmad"
+    - "langærmet"
+    # Svensk/dansk grønn erm
+    - "gröna ärmar"
+    - "grön ärm"
+    - "grønne ærmer"
+    - "grøn ærme"
+    # ── Drakttype ───────────────────────────────────────────────────────────
+    - "hjemmedrakt"
+    - "bortedrakt"
+    - "tredjedrakt"
+    - "hjemme"
+    - "borte"
+    # ── Stil/epoke ──────────────────────────────────────────────────────────
     - "retro"
     - "vintage"
     - "gammel"
@@ -239,10 +471,14 @@ filters:
     - "1990s"
     - "klassisk"
     - "original"
+    - "sjelden"
+    - "rare"
+    - "limited edition"
+    # ── Merker fra epoken ───────────────────────────────────────────────────
     - "diadora"
     - "umbro"
-    - "hjemmedrakt"
-    - "bortedrakt"
+    - "kelme"
+    # ── Matchworn/signert ───────────────────────────────────────────────────
     - "signert"
     - "signed"
     - "autograph"
@@ -251,50 +487,69 @@ filters:
     - "match-worn"
     - "player issue"
     - "player worn"
-    - "limited edition"
-    - "rare"
-    - "sjelden"
-    # ── Stabæk-legender (matchworn/signert = jackpot) ────────────────────
+    - "spillerdrakt"
+    - "kampdrakt"
+    # ── Kontekst ────────────────────────────────────────────────────────────
+    - "tippeligaen"
+    - "eliteserien"
+    - "norgesmester"
+    - "seriemester"
+    - "norsk fotball"
+    - "norwegian football"
+    - "norway"
+    - "norge"
+    # ── Spillere – legender ─────────────────────────────────────────────────
+    - "allanzinho"
     - "veigar"
     - "veigar páll"
     - "veigar pall"
     - "veigar gunnarsson"
     - "nannskog"
-    - "martin andresen"
-    - "andresen"
-    - "allanzinho"
     - "kjønsberg"
     - "kjoensberg"
-    - "hanse olsen"
-    - "hans-erik olsen"
-    - "hans erik olsen"
+    - "frode kjønsberg"
     - "belsvik"
     - "petter belsvik"
-    - "vidar riseth"
-    - "riseth"
+    - "rushfeldt"
+    - "sigurd rushfeldt"
+    - "andresen"
+    - "martin andresen"
     - "eftevaag"
     - "claus eftevaag"
-    - "frode kjønsberg"
     - "leonhardsen"
     - "øyvind leonhardsen"
-    - "lydersen"
-    - "pål lydersen"
     - "bjørnebye"
     - "stig inge bjørnebye"
     - "thorstvedt"
     - "erik thorstvedt"
-    - "gunnar halle"
+    - "lydersen"
+    - "pål lydersen"
+    - "riseth"
+    - "vidar riseth"
     - "halle"
-    - "solbakken"
-    - "ståle solbakken"
-    - "dan eggen"
+    - "gunnar halle"
     - "eggen"
-    - "jostein flo"
-    - "sigurd rushfeldt"
-    - "rushfeldt"
-    - "henning berg"
-    - "jan åge fjørtoft"
+    - "dan eggen"
     - "fjørtoft"
+    - "jan åge fjørtoft"
+    - "jostein flo"
+    - "kennedy"
+    - "kennedy bakircioglu"
+    - "hanse olsen"
+    - "hans-erik olsen"
+    - "christer george"
+    - "tor arne overvik"
+    - "mikael dorsin"
+    - "erik hagen"
+    # ── Trenere ─────────────────────────────────────────────────────────────
+    - "ola by rise"
+    - "by rise"
+    - "trond sollied"
+    - "sollied"
+    # ── Årstall fra den grønne epoken ──────────────────────────────────────
+    - "1990"
+    - "1991"
+    - "1992"
     - "1993"
     - "1994"
     - "1995"
@@ -308,7 +563,7 @@ filters:
     - "2003"
 
   vintage_year_range:
-    from: 1993
+    from: 1990
     to: 2003
 
   exclude_year_terms:
