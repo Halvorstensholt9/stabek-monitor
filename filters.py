@@ -23,9 +23,11 @@ def _text(ad: Dict) -> str:
 def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     """
     Returns (keep, score, reason).
-    score ≥ 1  → high-confidence vintage match  (★ in message)
-    score == 0 → generic Stabæk listing        (no star, still sent)
-    keep=False → skip entirely
+    score ≥ 3  → grønne ermer / jackpot         (⭐⭐ i melding)
+    score ≥ 2  → vintage/sjelden drakt           (⭐ i melding)
+    score ≥ 1  → retro-signal, longsleeved etc   (► i melding)
+    score == 0 → generisk Stabæk-drakt           → IKKE sendt
+    keep=False → hopp over
     """
     text = _text(ad)
 
@@ -87,4 +89,9 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         reasons.append(f"år {matched_years[0]}" if matched_years else "vintage år")
 
     reason_str = " | ".join(reasons) if reasons else "generisk Stabæk-drakt"
+
+    # ── 5. Minstegrense – ikke varsle om generiske drakter ───────────────
+    if score == 0:
+        return False, 0, "generisk drakt – ingen vintage/sjelden-signaler"
+
     return True, score, reason_str
