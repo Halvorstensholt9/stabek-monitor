@@ -122,8 +122,19 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
 
     reason_str = " | ".join(reasons) if reasons else "Stabæk-drakt"
 
-    # ── 5. Send grønne ermer ELLER vintage-årstall ──────────────────────
-    if not is_green_sleeve and not has_vintage_year:
-        return False, 0, "ingen grønn arm eller vintage-årstall"
+    # ── 5. Send grønne ermer, vintage-årstall eller vintage-ord ─────────
+    VINTAGE_WORDS = {
+        "vintage", "retro", "gammel", "klassisk", "original",
+        "sjelden", "rare", "diadora", "umbro", "kelme",
+        "matchworn", "match worn", "match-worn",
+        "signert", "signed", "autograph",
+        "player issue", "player worn", "spillerdrakt", "kampdrakt",
+        "hjemmedrakt", "bortedrakt",
+        "90s", "90-tall", "1990s",
+    }
+    has_vintage_word = any(w in text for w in VINTAGE_WORDS)
+
+    if not is_green_sleeve and not has_vintage_year and not has_vintage_word:
+        return False, 0, "ingen grønn arm, årstall eller vintage-ord"
 
     return True, score, reason_str
