@@ -1,14 +1,14 @@
 # ─────────────────────────────────────────────────
 #  Stabæk Drakt Monitor – mal for konfigurasjon
 #  Kopier denne til config.yaml og fyll inn verdiene
-# ─────────────:────────────────────────────────────
+# ─────────────────────────────────────────────────
 
 telegram:
   bot_token: "DIN_BOT_TOKEN_HER"
   chat_id:   "DIN_CHAT_ID_HER"
 
 search:
-  interval_minutes: 6
+  interval_minutes: 3
 
   finn_keywords:
     - "stabæk drakt"
@@ -18,48 +18,145 @@ search:
     - "stabæk diadora"
     - "stabæk umbro"
     - "stabæk 90"
+    - "stabæk trøye"
+    - "stabæk hjemmedrakt"
+    - "stabæk bortedrakt"
+    - "stabæk grønn drakt"
+    - "stabæk IF drakt"
+    - "stabæk fotball drakt"
+    - "stabæk gammel drakt"
+    - "stabæk klassisk drakt"
 
   ebay_keywords:
     - "Stabaek shirt"
     - "Stabaek football shirt"
     - "Stabaek vintage"
     - "Stabaek Norway shirt"
+    - "Stabæk shirt"
+    - "Stabaek jersey"
+    - "Stabaek IF shirt"
+    - "Stabaek IF jersey"
+    - "Stabaek Diadora"
+    - "Stabaek Umbro"
+    - "Stabæk football"
+    - "Stabæk jersey"
+    - "Stabaek 90s"
+    - "Stabaek retro"
+    - "Norway Stabæk"
 
   tise_keywords:
     - "stabæk drakt"
     - "stabæk fotballdrakt"
     - "stabæk retro"
+    - "stabæk trøye"
+    - "stabæk IF"
+    - "stabæk vintage"
+    - "stabaek drakt"
+    - "stabæk 90"
+    - "stabæk grønn"
+    - "stabæk hjemmedrakt"
 
   vinted_keywords:
     - "stabæk drakt"
     - "stabæk"
+    - "stabæk trøye"
+    - "stabæk fotballdrakt"
+    - "stabaek"
+    - "stabæk IF"
+    - "stabæk retro"
+    - "stabæk vintage"
 
   forza_keywords:
     - "stabæk"
+    - "stabaek"
+    - "stabæk IF"
 
   cfs_keywords:
     - "stabaek"
     - "stabæk"
+    - "stabæk IF"
+    - "stabaek IF"
+    - "stabæk Norway"
+    - "stabaek Norway"
+    - "stabæk Diadora"
+    - "stabaek Diadora"
+    - "stabæk Umbro"
+    - "stabaek Umbro"
 
   tradera_keywords:
     - "stabæk drakt"
     - "stabæk"
+    - "stabæk tröja"
+    - "stabæk fotbollströja"
+    - "stabæk IF"
+    - "stabaek"
+    - "stabæk retro"
+    - "stabæk vintage"
 
   blocket_keywords:
     - "stabæk drakt"
     - "stabæk"
+    - "stabæk tröja"
+    - "stabæk fotbollströja"
+    - "stabæk IF"
+    - "stabaek"
+    - "stabæk retro"
 
   dba_keywords:
     - "stabæk trøje"
     - "stabæk drakt"
+    - "stabæk fodboldtrøje"
+    - "stabæk IF"
+    - "stabaek"
+    - "stabæk retro"
+    - "stabæk vintage"
 
   depop_keywords:
     - "Stabaek shirt"
     - "Stabaek football"
+    - "Stabæk shirt"
+    - "Stabaek jersey"
+    - "Stabæk jersey"
+    - "Stabaek Diadora"
+    - "Stabaek Umbro"
+    - "Stabæk football"
+    - "Stabaek IF"
+    - "Norway vintage football shirt"
 
   vfs_keywords:
     - "stabaek"
     - "stabæk"
+    - "stabæk IF"
+    - "stabaek IF"
+    - "stabæk Norway"
+    - "stabaek Norway"
+    - "stabæk Diadora"
+    - "stabaek Diadora"
+    - "stabæk Umbro"
+    - "stabaek Umbro"
+
+  reddit_keywords:
+    - "stabæk"
+    - "stabaek"
+    - "Stabæk shirt"
+    - "Stabaek shirt"
+    - "Stabæk jersey"
+    - "Stabaek jersey"
+
+  catawiki_keywords:
+    - "stabaek shirt"
+    - "stabæk shirt"
+    - "stabaek football"
+    - "stabæk"
+    - "stabaek"
+
+  tfi_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "stabæk IF"
+    - "stabaek IF"
+    - "stabæk Norway"
+    - "stabaek Norway"
 
 filters:
   required_terms:
@@ -69,18 +166,39 @@ filters:
   high_relevance_terms:
     - "grønn"
     - "grønne"
+    - "grønn arm"
+    - "grønne ermer"
+    - "green sleeve"
+    - "green sleeves"
     - "erme"
     - "ermer"
-    - "green sleeve"
     - "retro"
     - "vintage"
     - "gammel"
     - "90-tall"
     - "90s"
+    - "1990s"
     - "klassisk"
     - "original"
     - "diadora"
     - "umbro"
+    - "hjemmedrakt"
+    - "bortedrakt"
+    - "signert"
+    - "matchworn"
+    - "match worn"
+    - "player issue"
+    - "1993"
+    - "1994"
+    - "1995"
+    - "1996"
+    - "1997"
+    - "1998"
+    - "1999"
+    - "2000"
+    - "2001"
+    - "2002"
+    - "2003"
 
   vintage_year_range:
     from: 1993

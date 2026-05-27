@@ -11,6 +11,7 @@ import re
 import time
 import urllib.parse
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional
 
 import requests
@@ -59,15 +60,27 @@ class EbayScraper:
         self.html_session.headers.update(_HEADERS_HTML)
 
     def search(self, keyword: str) -> List[Dict]:
+        """Søker alle 5 eBay-markeder parallelt for ett søkeord."""
         results = []
-        for site_key, base_url in _RSS_URLS.items():
+
+        def _search_one(site_key, base_url):
             ads = self._search_rss(keyword, site_key, base_url)
             if ads is None:
-                # RSS feilet – prøv HTML
                 ads = self._search_html(keyword, site_key, base_url)
             logger.info("eBay %s '%s': %d treff", site_key, keyword, len(ads))
-            results.extend(ads)
-            time.sleep(2)
+            return ads
+
+        with ThreadPoolExecutor(max_workers=5, thread_name_prefix="ebay") as pool:
+            futures = {
+                pool.submit(_search_one, sk, bu): sk
+                for sk, bu in _RSS_URLS.items()
+            }
+            for future in as_completed(futures):
+                try:
+                    results.extend(future.result())
+                except Exception as exc:
+                    logger.warning("eBay %s feil: %s", futures[future], exc)
+
         return results
 
     # ── RSS ──────────────────────────────────────────────────────────────
