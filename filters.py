@@ -46,10 +46,16 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
             return False, 0, "mangler stabæk"
 
     # ── 2. Sjekk grønne ermer FØR alt annet ────────────────────────────
-    _GREEN        = ("grønn", "grønne", "green", "grön", "grøn")
-    _SLEEVE_WORDS = ("erme", "ermer", "sleeve", "sleeves", "ärmar", "ärm",
-                     "ærmer", "ærme")
-    _ARM_RE       = re.compile(r"\barm(er|ar)?\b")
+    _GREEN        = ("grønn", "grønne", "green", "grön", "grøn",
+                     "groene", "groen")                          # + nederlandsk
+    _SLEEVE_WORDS = ("erme", "ermer", "erm",                    # norsk
+                     "sleeve", "sleeves",                        # engelsk
+                     "ärmar", "ärm",                            # svensk
+                     "ærmer", "ærme",                           # dansk
+                     "mouwen", "mouw",                          # nederlandsk
+                     "panel",                                    # eng beskrivelse
+                     )
+    _ARM_RE       = re.compile(r"\barm(er|ar|s)?\b")            # arm/armer/armar/arms
 
     has_green  = any(w in text for w in _GREEN)
     has_sleeve = any(w in text for w in _SLEEVE_WORDS) or bool(_ARM_RE.search(text))
