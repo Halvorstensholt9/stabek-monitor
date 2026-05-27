@@ -23,56 +23,49 @@ def _text(ad: Dict) -> str:
 def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     """
     Returns (keep, score, reason).
-    score ≥ 3  → grønne ermer / jackpot         (⭐⭐ i melding)
-    score ≥ 2  → vintage/sjelden drakt           (⭐ i melding)
-    score ≥ 1  → retro-signal, longsleeved etc   (► i melding)
-    score == 0 → generisk Stabæk-drakt           → IKKE sendt
-    keep=False → hopp over
+    score ≥ 5  → grønne ermer + år/merke = JACKPOT   (⭐⭐ i melding)
+    score ≥ 3  → grønne ermer eller tydelig vintage   (⭐ i melding)
+    score ≥ 1  → noe signal – sendes                  (► i melding)
+    score == 0 → passerer hard-filter – sendes også   (· i melding)
+    keep=False → hopp over (kun ny-sesong + barnestørrelser)
     """
     text = _text(ad)
 
-    # ── 1. Required term ────────────────────────────────────────────────
-    # Godtar også annonser der en kjent Stabæk-spiller nevnes (uten klubbnavn)
+    # ── 1. Required term (inkl. vanlige skrivfeil) ───────────────────────
     PLAYER_NAMES = {
-        # Spillere
         "veigar", "nannskog", "allanzinho", "andresen",
         "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
         "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt",
         "lydersen", "riseth", "fjørtoft", "bakircioglu",
         "kennedy", "christer george", "dorsin", "hagen",
-        # Trenere
         "by rise", "sollied",
     }
     required = [t.lower() for t in cfg.get("required_terms", [])]
     if not any(t in text for t in required):
         if not any(p in text for p in PLAYER_NAMES):
-            return False, 0, "mangler 'stabæk'"
+            return False, 0, "mangler stabæk"
 
-    # ── 2. Hard excludes: clearly new-season jerseys ─────────────────────
-    exclude_year_terms = [t.lower() for t in cfg.get("exclude_year_terms", [])]
+    # ── 2. Hard excludes: kun helt åpenbare ny-sesong-drakter ───────────
     for phrase in NEW_SEASON_PHRASES:
         if phrase in text:
             return False, 0, f"ny-sesong ({phrase})"
 
-    years_in_text = [int(y) for y in _YEAR_RE.findall(text)]
-    has_modern_year = any(y >= 2010 for y in years_in_text)
-    has_vintage_year = any(
-        cfg["vintage_year_range"]["from"] <= y <= cfg["vintage_year_range"]["to"]
-        for y in years_in_text
-    )
-
-    if has_modern_year and not has_vintage_year:
-        is_vintage_labelled = any(
-            w in text for w in ("retro", "vintage", "gammel", "original", "klassisk")
+    exclude = [t.lower() for t in cfg.get("exclude_year_terms", [])]
+    if any(t in text for t in exclude):
+        # Tillat likevel hvis retro/vintage/signed er nevnt
+        is_collector = any(
+            w in text for w in ("retro", "vintage", "gammel", "original",
+                                "signert", "signed", "matchworn", "match worn")
         )
-        if not is_vintage_labelled:
-            return False, 0, "nyere årstall uten retro-label"
+        if not is_collector:
+            return False, 0, "ny-sesong årstall"
 
     # ── 3. Children's sizes ─────────────────────────────────────────────
     if not cfg.get("include_children", False):
         if any(c in text.split() for c in CHILD_INDICATORS):
             is_collector = any(
-                w in text for w in ("retro", "vintage", "original", "gammel")
+                w in text for w in ("retro", "vintage", "original", "gammel",
+                                    "signert", "signed")
             )
             if not is_collector:
                 return False, 0, "barnestørrelse"
@@ -81,40 +74,45 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     score = 0
     reasons = []
 
-    # Grønne ermer = jackpot – fanger alle måter folk skriver det på:
-    # "grønne ermer", "grønn arm", "green sleeve", "green arm" osv.
-    _GREEN        = ("grønn", "grønne", "green")
-    _SLEEVE_WORDS = ("erme", "ermer", "sleeve", "sleeves")
-    # "arm"/"armer" brukes som ordgrense-match for å unngå falske treff
-    _ARM_RE       = re.compile(r"\barm(er)?\b")
+    # Grønne ermer = jackpot
+    _GREEN        = ("grønn", "grønne", "green", "grön", "grøn")
+    _SLEEVE_WORDS = ("erme", "ermer", "sleeve", "sleeves", "ärmar", "ärm",
+                     "ærmer", "ærme")
+    _ARM_RE       = re.compile(r"\barm(er|ar)?\b")
 
     has_green  = any(w in text for w in _GREEN)
     has_sleeve = any(w in text for w in _SLEEVE_WORDS) or bool(_ARM_RE.search(text))
 
     if has_green and has_sleeve:
-        score += 3
+        score += 4
         reasons.append("🟢 GRØNNE ERMER")
     elif has_green:
-        # "grønn" nevnt uten eksplisitt erme-ord – fortsatt relevant
         score += 2
-        reasons.append("grønn farge nevnt")
+        reasons.append("grønn farge")
 
+    # High-relevance terms
     high_terms = [t.lower() for t in cfg.get("high_relevance_terms", [])]
     matched = [t for t in high_terms if t in text]
     score += len(matched)
     if matched:
-        reasons.append(", ".join(matched[:3]))
+        reasons.append(", ".join(matched[:4]))
+
+    # Årstall – reager på ALLE år, ikke bare vintage-range
+    years_in_text = [int(y) for y in _YEAR_RE.findall(text)]
+    vintage_from = cfg["vintage_year_range"]["from"]
+    vintage_to   = cfg["vintage_year_range"]["to"]
+    has_vintage_year = any(vintage_from <= y <= vintage_to for y in years_in_text)
+    has_any_year     = bool(years_in_text)
 
     if has_vintage_year:
         score += 2
-        matched_years = [y for y in years_in_text if
-                         cfg["vintage_year_range"]["from"] <= y <= cfg["vintage_year_range"]["to"]]
-        reasons.append(f"år {matched_years[0]}" if matched_years else "vintage år")
+        matched_years = [y for y in years_in_text if vintage_from <= y <= vintage_to]
+        reasons.append(f"år {matched_years[0]}")
+    elif has_any_year:
+        score += 1
+        reasons.append(f"år {years_in_text[0]}")
 
-    reason_str = " | ".join(reasons) if reasons else "generisk Stabæk-drakt"
+    reason_str = " | ".join(reasons) if reasons else "Stabæk-drakt"
 
-    # ── 5. Minstegrense – ikke varsle om generiske drakter ───────────────
-    if score == 0:
-        return False, 0, "generisk drakt – ingen vintage/sjelden-signaler"
-
+    # ── 5. Send ALT som passerer hard-filteret ───────────────────────────
     return True, score, reason_str

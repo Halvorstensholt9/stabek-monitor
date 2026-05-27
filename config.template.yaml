@@ -12,12 +12,18 @@ search:
 
   # ── Finn.no ──────────────────────────────────────────────────────────────
   finn_keywords:
-    # Basis
+    # Basis – korrekt + skrivfeil
     - "stabæk drakt"
     - "stabæk fotballdrakt"
     - "stabæk trøye"
     - "stabæk IF drakt"
+    - "stabæk IF"
     - "stabaek drakt"
+    - "stabaek"
+    - "stabek drakt"
+    - "stabek"
+    - "stabak drakt"
+    - "stabbæk"
     # Grønn arm – HØYESTE PRIORITET
     - "stabæk grønn"
     - "stabæk grønne ermer"
@@ -71,14 +77,20 @@ search:
 
   # ── eBay (5 markeder, søkes parallelt) ─────────────────────────────────
   ebay_keywords:
-    # Basis klubbnavn – med og uten æ
+    # Basis klubbnavn – korrekt + skrivfeil
     - "Stabaek shirt"
     - "Stabæk shirt"
+    - "Stabek shirt"
+    - "Stabak shirt"
+    - "Stabbæk shirt"
     - "Stabaek football shirt"
+    - "Stabek football shirt"
     - "Stabaek jersey"
     - "Stabæk jersey"
+    - "Stabek jersey"
     - "Stabaek IF shirt"
     - "Stabaek IF jersey"
+    - "Stabek IF"
     - "Stabæk football"
     # Grønn arm
     - "Stabaek green sleeve"
@@ -137,6 +149,9 @@ search:
     - "stabæk trøye"
     - "stabæk IF"
     - "stabaek"
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
     - "stabæk retro"
     - "stabæk vintage"
     # Grønn arm
@@ -173,6 +188,9 @@ search:
   vinted_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
     - "stabæk drakt"
     - "stabæk trøye"
     - "stabæk fotballdrakt"
@@ -215,6 +233,9 @@ search:
   tradera_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
     - "stabæk drakt"
     - "stabæk tröja"
     - "stabæk fotbollströja"
@@ -240,6 +261,9 @@ search:
   blocket_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
     - "stabæk drakt"
     - "stabæk tröja"
     - "stabæk fotbollströja"
@@ -255,6 +279,9 @@ search:
   dba_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
     - "stabæk trøje"
     - "stabæk fodboldtrøje"
     - "stabæk IF"
@@ -274,6 +301,8 @@ search:
   depop_keywords:
     - "Stabaek shirt"
     - "Stabæk shirt"
+    - "Stabek shirt"
+    - "Stabak shirt"
     - "Stabaek football"
     - "Stabæk football"
     - "Stabaek jersey"
@@ -374,6 +403,8 @@ search:
   grailed_keywords:
     - "Stabaek"
     - "Stabæk"
+    - "Stabek"
+    - "Stabak"
     - "Stabaek IF"
     - "Stabæk shirt"
     - "Stabaek jersey"
@@ -416,6 +447,10 @@ filters:
   required_terms:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
+    - "stabæck"
 
   high_relevance_terms:
     # ── Grønn arm – JACKPOT ─────────────────────────────────────────────────
@@ -498,13 +533,22 @@ filters:
     - "norwegian football"
     - "norway"
     - "norge"
-    # ── Spillere – legender ─────────────────────────────────────────────────
+    # ── Skrivfeil klubbnavn ─────────────────────────────────────────────────
+    - "stabek"
+    - "stabak"
+    - "stabbæk"
+    - "stabæck"
+    - "stabeek"
+    # ── Spillere – legender + skrivfeil ─────────────────────────────────────
     - "allanzinho"
+    - "alanzinho"
+    - "allanzino"
     - "veigar"
     - "veigar páll"
     - "veigar pall"
     - "veigar gunnarsson"
     - "nannskog"
+    - "nanskog"
     - "kjønsberg"
     - "kjoensberg"
     - "frode kjønsberg"
