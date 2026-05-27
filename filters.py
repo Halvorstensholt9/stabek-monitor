@@ -32,9 +32,16 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     text = _text(ad)
 
     # ── 1. Required term ────────────────────────────────────────────────
+    # Godtar også annonser der en kjent Stabæk-spiller nevnes (uten klubbnavn)
+    PLAYER_NAMES = {
+        "allanzinho", "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
+        "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt", "solbakken",
+        "lydersen", "riseth", "fjørtoft",
+    }
     required = [t.lower() for t in cfg.get("required_terms", [])]
     if not any(t in text for t in required):
-        return False, 0, "mangler 'stabæk'"
+        if not any(p in text for p in PLAYER_NAMES):
+            return False, 0, "mangler 'stabæk'"
 
     # ── 2. Hard excludes: clearly new-season jerseys ─────────────────────
     exclude_year_terms = [t.lower() for t in cfg.get("exclude_year_terms", [])]
