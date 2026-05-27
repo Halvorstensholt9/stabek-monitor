@@ -116,5 +116,8 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
 
     reason_str = " | ".join(reasons) if reasons else "Stabæk-drakt"
 
-    # ── 5. Send ALT som passerer hard-filteret ───────────────────────────
+    # ── 5. Terskel – grønne ermer alltid, resten må ha minst ett signal ─
+    if score == 0:
+        return False, 0, "ingen signal"
+
     return True, score, reason_str
