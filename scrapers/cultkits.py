@@ -1,8 +1,7 @@
 """
-Vintage Football Shirts – UK-spesialistside for vintage fotballdrakter.
+Cult Kits – britisk vintage-draktbutikk (cultkits.com).
 Shopify-butikk: bruker /products.json med lokal nøkkelordsfiltrering.
 Bruker httpx+HTTP/2 for å omgå Cloudflare-blokkering.
-URL: https://www.vintagefootballshirts.com
 """
 
 import logging
@@ -12,7 +11,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_BASE         = "https://www.vintagefootballshirts.com"
+_BASE         = "https://www.cultkits.com"
 _PRODUCTS_URL = f"{_BASE}/products.json"
 _HEADERS      = {
     "User-Agent": "Mozilla/5.0 (compatible; DraktMonitor/1.0)",
@@ -21,7 +20,7 @@ _HEADERS      = {
 _product_cache: List[dict] = []
 
 
-class VintageFCScraper:
+class CultKitsScraper:
     def __init__(self):
         self.client = httpx.Client(http2=True, headers=_HEADERS, timeout=25)
 
@@ -35,12 +34,14 @@ class VintageFCScraper:
         for p in _product_cache:
             title = (p.get("title") or "").lower().replace("æ", "a")
             tags  = " ".join(p.get("tags") or []).lower()
-            if any(part in title or part in tags for part in kw_lower.split()):
+            body  = (p.get("body_html") or "").lower()[:300]
+            if any(part in title or part in tags or part in body
+                   for part in kw_lower.split()):
                 ad = _to_ad(p)
                 if ad:
                     matches.append(ad)
 
-        logger.info("VintageFootballShirts '%s': %d treff", keyword, len(matches))
+        logger.info("CultKits '%s': %d treff", keyword, len(matches))
         return matches
 
     def _fetch_all(self) -> List[dict]:
@@ -54,14 +55,14 @@ class VintageFCScraper:
                 resp.raise_for_status()
                 prods = resp.json().get("products", [])
             except Exception as exc:
-                logger.debug("VFS products.json feil side %d: %s", page, exc)
+                logger.debug("CultKits products.json feil side %d: %s", page, exc)
                 break
             if not prods:
                 break
             all_products.extend(prods)
             if len(prods) < 250:
                 break
-        logger.debug("VFS lager: %d produkter totalt", len(all_products))
+        logger.debug("CultKits lager: %d produkter totalt", len(all_products))
         return all_products
 
 
@@ -87,11 +88,11 @@ def _to_ad(p: dict) -> Optional[Dict]:
     img_url = imgs[0].get("src") if imgs else None
 
     return {
-        "id":          f"vfs_{pid}",
-        "source":      "vintagefootballshirts.com",
+        "id":          f"cultkits_{pid}",
+        "source":      "cultkits.com",
         "title":       title,
         "price":       price,
         "url":         url,
         "image_url":   img_url,
-        "description": "",
+        "description": (p.get("body_html") or "")[:200],
     }

@@ -39,6 +39,7 @@ from scrapers.thefootballidiots import FootballIdiotsScraper
 from scrapers.draktgata import DraktgataScraper
 from scrapers.marktplaats import MarktplaatsScraper
 from scrapers.grailed import GrailedScraper
+from scrapers.cultkits import CultKitsScraper
 # from scrapers.facebook import FacebookScraper  # Aktiver når du er klar
 
 
@@ -177,6 +178,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     draktgata   = DraktgataScraper()
     marktplaats = MarktplaatsScraper()
     grailed     = GrailedScraper()
+    cultkits    = CultKitsScraper()
 
     # (navn, søkefunksjon, nøkkelordliste, pause_sek_mellom_søk)
     sources = [
@@ -197,6 +199,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         ("draktgata",   draktgata.search,    s.get("draktgata_keywords",   []), 2.0),
         ("marktplaats", marktplaats.search,  s.get("marktplaats_keywords", []), 2.0),
         ("grailed",     grailed.search,      s.get("grailed_keywords",     []), 2.0),
+        ("cultkits",    cultkits.search,     s.get("cultkits_keywords",    []), 2.0),
     ]
 
     logger.info("══ Starter sjekk (%d kilder parallelt) ══", len(sources))

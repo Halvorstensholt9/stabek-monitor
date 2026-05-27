@@ -158,6 +158,52 @@ search:
     - "stabæk Norway"
     - "stabaek Norway"
 
+  # ── Draktgata.no (norsk vintage-draktbutikk) ────────────────────────────
+  draktgata_keywords:
+    - "stabæk"
+    - "stabaek"
+    - "stabæk IF"
+
+  # ── Marktplaats.nl (Nederland) ──────────────────────────────────────────
+  marktplaats_keywords:
+    - "stabæk"
+    - "stabaek"
+    - "stabæk shirt"
+    - "stabaek shirt"
+    - "stabæk drakt"
+    - "stabaek voetbalshirt"
+    - "stabæk IF"
+    - "stabaek Diadora"
+    - "stabaek Umbro"
+    - "stabaek Adidas"
+    - "Norway vintage football shirt"
+    - "Noorwegen voetbalshirt vintage"
+
+  # ── Grailed (internasjonal drakt-/kleskjøp) ─────────────────────────────
+  grailed_keywords:
+    - "Stabaek"
+    - "Stabæk"
+    - "Stabaek IF"
+    - "Stabæk shirt"
+    - "Stabaek jersey"
+    - "Stabaek Diadora"
+    - "Stabaek Umbro"
+    - "Stabaek Adidas"
+    - "Norway vintage football"
+
+  # ── Vintage Football Shirts (UK) ────────────────────────────────────────
+  vfs_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "stabæk IF"
+    - "norway"
+
+  # ── Cult Kits (UK vintage-butikk) ───────────────────────────────────────
+  cultkits_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "norway"
+
 filters:
   required_terms:
     - "stabæk"

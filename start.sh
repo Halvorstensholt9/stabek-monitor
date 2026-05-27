@@ -1,8 +1,7 @@
 #!/bin/bash
 # Railway startup-script
-# Kopier template-config til config.yaml hvis den ikke finnes
-if [ ! -f config.yaml ]; then
-    echo "Kopierer config.template.yaml → config.yaml"
-    cp config.template.yaml config.yaml
-fi
+# Alltid kopier config.template.yaml → config.yaml
+# (credentials overstyres av TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID miljøvariabler)
+echo "Kopierer config.template.yaml → config.yaml"
+cp config.template.yaml config.yaml
 exec python monitor.py
