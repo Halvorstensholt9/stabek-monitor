@@ -35,25 +35,42 @@ class Telegram:
         source_label = {"finn.no": "Finn.no", "ebay.co.uk": "eBay UK",
                         "ebay.de": "eBay DE"}.get(ad.get("source", ""), ad.get("source", ""))
 
-        star = "⭐ " if score >= 2 else ""
-        green_flag = "🟢 GRØNNE ERMER!" if "grønne ermer" in match_reason else ""
+        is_green = "GRØNNE ERMER" in match_reason
+        title    = ad.get("title", "Ukjent tittel")
+        price    = ad.get("price", "")
+        url      = ad.get("url", "")
 
-        caption_parts = [
-            f"{star}<b>{ad.get('title', 'Ukjent tittel')}</b>",
-        ]
-        if green_flag:
-            caption_parts.append(green_flag)
+        # ── Grønne ermer – ALARM-melding sendes FØR annonsen ────────────────
+        if is_green:
+            alarm_lines = [
+                "🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨",
+                "<b>GRØNNE ERMER FUNNET!</b>",
+                f"Score: {score}",
+                "🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨",
+            ]
+            self.send_text("\n".join(alarm_lines))
 
-        price = ad.get("price", "")
+        # ── Header avhengig av prioritet ─────────────────────────────────────
+        if is_green and score >= 6:
+            header = "🟢🟢🟢 JACKPOT – GRØNNE ERMER 🟢🟢🟢"
+        elif is_green:
+            header = "🟢🟢 GRØNNE ERMER 🟢🟢"
+        elif score >= 4:
+            header = "⭐⭐ HØYPRIORITERT"
+        elif score >= 2:
+            header = "⭐"
+        else:
+            header = ""
+
+        caption_parts = []
+        if header:
+            caption_parts.append(f"<b>{header}</b>")
+        caption_parts.append(f"<b>{title}</b>")
         if price:
             caption_parts.append(f"💰 <b>{price}</b>")
-
         caption_parts.append(f"📍 {source_label}")
-
         if match_reason:
-            caption_parts.append(f"<i>Treff: {match_reason}</i>")
-
-        url = ad.get("url", "")
+            caption_parts.append(f"<i>{match_reason}</i>")
         if url:
             caption_parts.append(f'<a href="{url}">👉 Se annonsen</a>')
 
@@ -69,7 +86,6 @@ class Telegram:
             })
             if ok:
                 return True
-            # Photo failed – fall back to text message
             logger.debug("sendPhoto feilet, sender tekstmelding i stedet")
 
         return self.send_text(caption)

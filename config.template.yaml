@@ -206,9 +206,14 @@ search:
   forza_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
     - "stabæk IF"
     - "stabæk drakt"
+    # Grønn arm
     - "stabæk grønn"
+    - "stabæk grønne ermer"
+    - "stabæk grønn arm"
+    - "stabæk langermet"
     - "allanzinho"
     - "veigar"
     - "nannskog"
@@ -217,6 +222,7 @@ search:
   cfs_keywords:
     - "stabaek"
     - "stabæk"
+    - "stabek"
     - "stabæk IF"
     - "stabaek IF"
     - "stabæk Norway"
@@ -225,6 +231,12 @@ search:
     - "stabaek Diadora"
     - "stabæk Umbro"
     - "stabaek Umbro"
+    # Grønn arm
+    - "stabaek green"
+    - "stabaek green sleeve"
+    - "stabæk green sleeve"
+    - "norway green sleeve"
+    - "norway green Diadora"
     - "Allanzinho"
     - "Veigar"
     - "Nannskog"
@@ -326,6 +338,7 @@ search:
   vfs_keywords:
     - "stabaek"
     - "stabæk"
+    - "stabek"
     - "stabæk IF"
     - "stabaek IF"
     - "stabæk Norway"
@@ -334,6 +347,12 @@ search:
     - "stabaek Diadora"
     - "stabæk Umbro"
     - "stabaek Umbro"
+    # Grønn arm
+    - "stabaek green"
+    - "stabaek green sleeve"
+    - "stabæk green sleeve"
+    - "stabaek long sleeve"
+    - "norway green sleeve"
     - "Allanzinho"
     - "Veigar"
 
@@ -341,10 +360,17 @@ search:
   reddit_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
     - "Stabæk shirt"
     - "Stabaek shirt"
     - "Stabæk jersey"
     - "Stabaek jersey"
+    # Grønn arm
+    - "Stabaek green sleeve"
+    - "Stabæk green sleeve"
+    - "Norway green sleeve vintage"
+    - "norway green sleeve Diadora"
     - "Allanzinho"
     - "Veigar"
     - "Nannskog"
@@ -354,9 +380,15 @@ search:
   catawiki_keywords:
     - "stabaek shirt"
     - "stabæk shirt"
+    - "stabek shirt"
     - "stabaek football"
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    # Grønn arm
+    - "stabaek green sleeve"
+    - "norway green sleeve football"
+    - "norway green sleeve vintage"
     - "Allanzinho"
     - "Veigar"
     - "Norway Diadora"
@@ -365,7 +397,13 @@ search:
   draktgata_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
     - "stabæk IF"
+    # Grønn arm
+    - "stabæk grønn"
+    - "stabæk grønne ermer"
+    - "stabæk grønn arm"
+    - "stabæk langermet"
     - "allanzinho"
     - "veigar"
     - "nannskog"
@@ -374,6 +412,8 @@ search:
   marktplaats_keywords:
     - "stabæk"
     - "stabaek"
+    - "stabek"
+    - "stabak"
     - "stabæk shirt"
     - "stabaek shirt"
     - "stabæk drakt"
@@ -384,6 +424,11 @@ search:
     - "stabaek Adidas"
     - "Norway vintage football shirt"
     - "Noorwegen voetbalshirt vintage"
+    # Grønn arm – også på nederlandsk
+    - "stabæk groene mouwen"
+    - "stabaek groene mouwen"
+    - "norway groene mouwen"
+    - "stabaek green sleeve"
     - "Allanzinho"
     - "Veigar"
 
@@ -391,10 +436,17 @@ search:
   tfi_keywords:
     - "stabaek"
     - "stabæk"
+    - "stabek"
+    - "stabak"
     - "stabæk IF"
     - "stabaek IF"
     - "stabæk Norway"
     - "stabaek Norway"
+    # Grønn arm
+    - "stabaek green sleeve"
+    - "stabæk green sleeve"
+    - "stabaek long sleeve"
+    - "norway green sleeve"
     - "Allanzinho"
     - "Veigar"
     - "Norway Diadora"
