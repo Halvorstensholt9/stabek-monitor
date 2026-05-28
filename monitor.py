@@ -21,6 +21,7 @@ import yaml
 
 from database import Database
 from filters import evaluate
+from image_analyzer import has_green_sleeve
 from notifier import Telegram
 from scrapers.finn import FinnScraper
 from scrapers.ebay import EbayScraper
@@ -103,6 +104,22 @@ def _run_source(
             )
             if not is_new:
                 continue
+
+            # ── Bildeanalyse: sjekk bilde hvis beskrivelse er kort/tom OG
+            #    tittelen allerede indikerer Stabæk (unngår false positives) ──
+            _STABÆK_TITLE = {"stabæk", "stabaek", "stabek", "stabak", "stabbæk"}
+            _title_lc = ad.get("title", "").lower().replace("\xe6", "ae")
+            _is_stabæk_title = any(t in _title_lc for t in _STABÆK_TITLE)
+            _desc = ad.get("description", "").strip()
+            if (len(_desc) < 60          # tom eller kort beskrivelse
+                    and ad.get("image_url")
+                    and _is_stabæk_title):
+                if has_green_sleeve(ad["image_url"]):
+                    if not _desc:
+                        ad["description"] = "grønne ermer (funnet via bildeanalyse)"
+                    else:
+                        ad["description"] = _desc + " | grønne ermer (bildeanalyse)"
+                    logger.info("🟢 BILDE-TREFF grønne ermer: %s", ad.get("title"))
 
             keep, score, reason = evaluate(ad, filter_cfg)
             if keep:

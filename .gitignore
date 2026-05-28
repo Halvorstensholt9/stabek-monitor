@@ -3,8 +3,12 @@ config.yaml
 
 # Database og logg – lokale filer
 seen_ads.db
+image_cache.db
 monitor.log
 *.log
+
+# Claude session-data
+.claude/
 
 # Python
 __pycache__/
