@@ -4,5 +4,6 @@ lxml>=4.9.3
 pyyaml>=6.0.1
 schedule>=1.2.1
 httpx[http2]>=0.27.0
+curl_cffi>=0.7.0
 # facebook-scraper>=0.6.2   # Aktiver når du vil legge til Facebook-støtte
 # lxml_html_clean>=0.1.0    # Nødvendig for facebook-scraper på Python 3.13+

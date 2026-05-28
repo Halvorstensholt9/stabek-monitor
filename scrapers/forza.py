@@ -1,109 +1,95 @@
 """
 Forzasecondhand.no-scraper.
-Norsk spesialistside for brukte fotballdrakter (WooCommerce).
+Norsk spesialistside for brukte fotballdrakter (Shopify).
+Bruker curl_cffi for å etterligne Chrome-fingerprint og omgå Cloudflare.
 """
 
 import logging
-import re
-import urllib.parse
 from typing import Dict, List, Optional
 
-import requests
-from bs4 import BeautifulSoup
+from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = "https://forzasecondhand.no"
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-    "Accept-Language": "nb-NO,nb;q=0.9",
-}
+_BASE         = "https://forzasecondhand.no"
+_PRODUCTS_URL = f"{_BASE}/products.json"
+
+_product_cache: List[dict] = []
 
 
 class ForzaScraper:
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update(_HEADERS)
+        self.session = cf.Session(impersonate="chrome124")
 
     def search(self, keyword: str) -> List[Dict]:
-        params = {"s": keyword, "post_type": "product"}
-        url = f"{_BASE_URL}/?{urllib.parse.urlencode(params)}"
-        logger.debug("Forzasecondhand søker: %s", url)
+        global _product_cache
+        if not _product_cache:
+            _product_cache = self._fetch_all()
 
-        try:
-            resp = self.session.get(url, timeout=20)
-            resp.raise_for_status()
-        except requests.RequestException as exc:
-            logger.error("Forzasecondhand feil for '%s': %s", keyword, exc)
-            return []
+        kw = keyword.lower().replace("æ", "a").replace("ø", "o").replace("å", "a")
+        matches = []
+        for p in _product_cache:
+            title = (p.get("title") or "").lower().replace("æ", "a").replace("ø", "o").replace("å", "a")
+            tags  = " ".join(p.get("tags") or []).lower()
+            body  = (p.get("body_html") or "").lower()[:300]
+            if any(part in title or part in tags or part in body
+                   for part in kw.split()):
+                ad = _to_ad(p)
+                if ad:
+                    matches.append(ad)
 
-        ads = self._parse(resp.text)
-        logger.info("Forzasecondhand '%s': %d treff", keyword, len(ads))
-        return ads
+        logger.info("Forzasecondhand '%s': %d treff", keyword, len(matches))
+        return matches
 
-    def _parse(self, html: str) -> List[Dict]:
-        soup = BeautifulSoup(html, "lxml")
+    def _fetch_all(self) -> List[dict]:
+        all_products = []
+        for page in range(1, 30):
+            try:
+                params = {"limit": 250}
+                if page > 1:
+                    params["page"] = page
+                resp = self.session.get(_PRODUCTS_URL, params=params, timeout=25)
+                resp.raise_for_status()
+                prods = resp.json().get("products", [])
+            except Exception as exc:
+                logger.debug("Forza products.json feil side %d: %s", page, exc)
+                break
+            if not prods:
+                break
+            all_products.extend(prods)
+            if len(prods) < 250:
+                break
+        logger.debug("Forza lager: %d produkter totalt", len(all_products))
+        return all_products
 
-        # WooCommerce bruker <li class="product ..."> eller <div class="product ...">
-        products = (
-            soup.find_all("li", class_=re.compile(r"\bproduct\b")) or
-            soup.find_all("div", class_=re.compile(r"product-small|product-grid-item|wc-block-grid__product"))
-        )
 
-        results = []
-        for prod in products:
-            ad = self._product_to_ad(prod)
-            if ad:
-                results.append(ad)
-        return results
+def _to_ad(p: dict) -> Optional[Dict]:
+    pid   = str(p.get("id") or "")
+    title = (p.get("title") or "").strip()
+    if not pid or not title:
+        return None
 
-    def _product_to_ad(self, prod) -> Optional[Dict]:
-        link = prod.find("a", href=re.compile(r"forzasecondhand\.no|^/"))
-        if not link:
-            link = prod.find("a", href=True)
-        if not link:
-            return None
+    handle = p.get("handle") or pid
+    url    = f"{_BASE}/products/{handle}"
 
-        url = link["href"]
-        if not url.startswith("http"):
-            url = _BASE_URL + url
+    variants  = p.get("variants") or []
+    price_raw = variants[0].get("price") if variants else None
+    if price_raw is None:
+        price_raw = p.get("price_min") or p.get("price")
+    try:
+        price = f"kr {float(price_raw):.0f}"
+    except (ValueError, TypeError):
+        price = "Se pris"
 
-        slug = url.rstrip("/").split("/")[-1]
-        ad_id = f"forza_{slug}"
+    imgs    = p.get("images") or []
+    img_url = imgs[0].get("src") if imgs else None
 
-        # Tittel
-        title_tag = (
-            prod.find(class_=re.compile(r"woocommerce-loop-product__title|product.?title", re.I)) or
-            prod.find("h2") or prod.find("h3") or prod.find("h4")
-        )
-        title = title_tag.get_text(strip=True) if title_tag else link.get_text(strip=True)[:120]
-        if not title:
-            return None
-
-        # Pris
-        price_tag = prod.find(class_=re.compile(r"\bprice\b", re.I))
-        price = price_tag.get_text(strip=True) if price_tag else "Se pris"
-        # Fjern HTML-artefakter
-        price = re.sub(r"\s+", " ", price).strip()
-
-        # Bilde
-        img = prod.find("img")
-        img_url = None
-        if img:
-            img_url = img.get("data-src") or img.get("src") or img.get("data-lazy-src")
-            if img_url and img_url.startswith("data:"):
-                img_url = None  # base64-placeholder
-
-        return {
-            "id": ad_id,
-            "source": "forzasecondhand.no",
-            "title": title,
-            "price": price,
-            "url": url,
-            "image_url": img_url,
-            "description": "",
-        }
+    return {
+        "id":          f"forza_{pid}",
+        "source":      "forzasecondhand.no",
+        "title":       title,
+        "price":       price,
+        "url":         url,
+        "image_url":   img_url,
+        "description": (p.get("body_html") or "")[:200],
+    }
