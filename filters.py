@@ -32,18 +32,56 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     text = _text(ad)
 
     # ── 1. Required term (inkl. vanlige skrivfeil) ───────────────────────
+    # Kun navn som er SÅ unike at de nesten garantert peker på Stabæk.
+    # Vanlige etternavn (Kennedy, Riseth, Thorstvedt, Bjørnebye osv.) er fjernet
+    # fordi de gir false positives på Liverpool-, Norge- og Kongsvinger-drakter.
     PLAYER_NAMES = {
-        "veigar", "nannskog", "allanzinho", "andresen",
-        "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
-        "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt",
-        "lydersen", "riseth", "fjørtoft", "bakircioglu",
-        "kennedy", "christer george", "dorsin", "hagen",
-        "by rise", "sollied",
+        "allanzinho",       # brasiliansk – ekstremt unik Stabæk-legende
+        "bakircioglu",      # Kennedy Bakircioglu – ekstremt unik
+        "nannskog",         # Martin Nannskog – svært Stabæk-spesifikk
+        "veigar",           # Veigar Páll Gunnarsson – Islands/Stabæk-ikon
+        "kjønsberg",        # Rune Kjønsberg
+        "kjoensberg",       # skrivemåte uten æ
+        "belsvik",          # Pål Belsvik
+        "christer george",  # full navn – unikt nok
     }
     required = [t.lower() for t in cfg.get("required_terms", [])]
-    if not any(t in text for t in required):
+    _has_required = any(t in text for t in required)
+    if not _has_required:
         if not any(p in text for p in PLAYER_NAMES):
             return False, 0, "mangler stabæk"
+
+    # ── 1b. Spillernavn-bypass krever drakt-signal ───────────────────────
+    # Hvis treffet kom via spillernavn OG ikke via required_terms (stabæk osv.),
+    # må teksten inneholde et drakt-ord – fanger bøker/sanger/album om spillere.
+    # Eks: "FINNS DET ÄGG FINNS DET HOPP Rune Belsvik 1988" → ingen drakt → blokkert.
+    if not _has_required:
+        _JERSEY_WORDS = {
+            "drakt", "trøye", "jersey", "shirt", "trikot",
+            "tröja", "trøje", "voetbalshirt",
+            "fotballdrakt", "bortedrakt", "hjemmedrakt",
+        }
+        if not any(w in text for w in _JERSEY_WORDS):
+            return False, 0, "spillernavn men ingen drakt"
+
+    # ── 1c. Hard-filter ikke-drakt merch (globalt) ──────────────────────
+    # Autografkort, skjerf, plakater osv. fanges her uavhengig av score.
+    # Sjekker TITTELEN – ikke beskrivelsen – for å unngå falske treff.
+    _title_lc_g = (ad.get("title") or "").lower()
+    _MERCH_SIGNALS = {
+        "autografkort", "autograf-kort", "samlekort",
+        "programblad", "kampprogram",
+        "skjerf", " lue", "lue ", "caps ", " caps", "scarf", "halstørkle",
+        "plakat", "poster",
+    }
+    _JERSEY_TITLE_G = {
+        "drakt", "trøye", "jersey", "shirt",
+        "fotballdrakt", "bortedrakt", "hjemmedrakt",
+        "trikot", "tröja", "trøje", "voetbalshirt",
+    }
+    if (any(w in _title_lc_g for w in _MERCH_SIGNALS)
+            and not any(w in _title_lc_g for w in _JERSEY_TITLE_G)):
+        return False, 0, "ikke-drakt merch"
 
     # ── 2. Sjekk grønne ermer FØR alt annet ────────────────────────────
     _GREEN        = ("grønn", "grønne", "green", "grön", "grøn",
@@ -60,6 +98,42 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     has_green  = any(w in text for w in _GREEN)
     has_sleeve = any(w in text for w in _SLEEVE_WORDS) or bool(_ARM_RE.search(text))
     is_green_sleeve = has_green and has_sleeve
+
+    # ── 2b. Grønne ermer deaktivert for ikke-drakt gjenstander ──────────
+    # Fanziner, lydbøker og lignende KAN nevne «grønne ermer» i teksten
+    # uten å VÆRE en drakt. Vi sjekker TITTELEN (ikke beskrivelsen) for
+    # å unngå at fanzine-beskrivelser som nevner drakten blokkerer seg selv.
+    if is_green_sleeve:
+        _title_lc = (ad.get("title") or "").lower()
+        _NON_JERSEY_SIGNALS = {
+            "lydbok", "audiobook",
+            "fanzine", "fanzin", "frekkazin", "foldzin",
+            "samlekort", "programblad", "kampprogram",
+            "plakat", "poster", "hefte", "magasin",
+            " cd", "cd:", "dvd ", " dvd",
+        }
+        _JERSEY_TITLE_SIGNALS = {
+            "drakt", "trøye", "jersey", "shirt",
+            "fotballdrakt", "bortedrakt", "hjemmedrakt",
+            "trikot", "tröja", "trøje", "voetbalshirt",
+        }
+        _has_non_jersey   = any(w in _title_lc for w in _NON_JERSEY_SIGNALS)
+        _has_jersey_title = any(w in _title_lc for w in _JERSEY_TITLE_SIGNALS)
+        if _has_non_jersey and not _has_jersey_title:
+            is_green_sleeve = False
+            has_green = False
+
+    # ── 2c. Grønne ermer bare for drakter uten tydelig moderne årstall ──
+    # En Stabæk-drakt fra 2021 er IKKE den vi leter etter.
+    # Deaktiver GRØNNE ERMER-alarmen hvis eneste årstall er etter 2004.
+    if is_green_sleeve:
+        _all_years_early = [int(y) for y in _YEAR_RE.findall(text)]
+        _has_modern_only = (
+            any(y > 2004 for y in _all_years_early)
+            and not any(1980 <= y <= 2004 for y in _all_years_early)
+        )
+        if _has_modern_only:
+            is_green_sleeve = False
 
     # ── 3. Hard excludes – grønne ermer passerer ALLTID ─────────────────
     if not is_green_sleeve:
