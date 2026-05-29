@@ -134,6 +134,7 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         )
         if _has_modern_only:
             is_green_sleeve = False
+            has_green = False   # ikke gi «grønn farge»-poeng til moderne drakt
 
     # ── 3. Hard excludes – grønne ermer passerer ALLTID ─────────────────
     if not is_green_sleeve:
@@ -203,7 +204,6 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         "matchworn", "match worn", "match-worn",
         "signert", "signed", "autograph",
         "player issue", "player worn", "spillerdrakt", "kampdrakt",
-        "hjemmedrakt", "bortedrakt",
         "90s", "90-tall", "1990s",
     }
     has_vintage_word = any(w in text for w in VINTAGE_WORDS)
