@@ -227,7 +227,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     t0        = time.monotonic()
     total_new = 0
 
-    with ThreadPoolExecutor(max_workers=8, thread_name_prefix="scraper") as pool:
+    with ThreadPoolExecutor(max_workers=len(sources), thread_name_prefix="scraper") as pool:
         futures = {
             pool.submit(_run_source, name, fn, kws, db, tg, fc, pause): name
             for name, fn, kws, pause in sources
