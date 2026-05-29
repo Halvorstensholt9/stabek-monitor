@@ -45,17 +45,27 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         "belsvik",          # Pål Belsvik
         "christer george",  # full navn – unikt nok
     }
+    # ── Draktsponsorer i grønn-arm-perioden (~1990–2004) ─────────────────
+    # Brukes som identifikator når annonsen IKKE nevner «Stabæk» (manglende
+    # logo e.l.) – «ingen logo → gå etter sponsor». Sponsor-only krever
+    # grønt/teal-signal lenger ned (2d), siden samme sponsor kan ha vært på
+    # andre klubbers drakter. Legg nye bekreftede sponsorer her.
+    SPONSOR_NAMES = {
+        "kärcher", "karcher",   # hovedsponsor sent 90-tall / 2000-tall
+        "k-bank", "kbank",      # banksponsor
+    }
     required = [t.lower() for t in cfg.get("required_terms", [])]
     _has_required = any(t in text for t in required)
-    if not _has_required:
-        if not any(p in text for p in PLAYER_NAMES):
-            return False, 0, "mangler stabæk"
+    _has_player   = any(p in text for p in PLAYER_NAMES)
+    _has_sponsor  = any(sp in text for sp in SPONSOR_NAMES)
+    if not (_has_required or _has_player or _has_sponsor):
+        return False, 0, "mangler stabæk"
 
     # ── 1b. Spillernavn-bypass krever drakt-signal ───────────────────────
-    # Hvis treffet kom via spillernavn OG ikke via required_terms (stabæk osv.),
-    # må teksten inneholde et drakt-ord – fanger bøker/sanger/album om spillere.
+    # Hvis treffet kom via spillernavn (ikke required_terms), må teksten
+    # inneholde et drakt-ord – fanger bøker/sanger/album om spillere.
     # Eks: "FINNS DET ÄGG FINNS DET HOPP Rune Belsvik 1988" → ingen drakt → blokkert.
-    if not _has_required:
+    if not _has_required and _has_player:
         _JERSEY_WORDS = {
             "drakt", "trøye", "jersey", "shirt", "trikot",
             "tröja", "trøje", "voetbalshirt",
@@ -135,6 +145,14 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         if _has_modern_only:
             is_green_sleeve = False
             has_green = False   # ikke gi «grønn farge»-poeng til moderne drakt
+
+    # ── 2d. Sponsor-only krever grønt signal ────────────────────────────
+    # Annonse uten «Stabæk»/spillernavn som KUN matchet via sponsor må ha
+    # grønt/teal-erme (i tekst eller via bildeanalyse) – ellers kan det være
+    # en annen klubb med samme sponsor. «Ingen logo → gå etter sponsor.»
+    if _has_sponsor and not _has_required and not _has_player:
+        if not (is_green_sleeve or has_green):
+            return False, 0, "sponsor uten grønt signal"
 
     # ── 3. Hard excludes – grønne ermer passerer ALLTID ─────────────────
     if not is_green_sleeve:

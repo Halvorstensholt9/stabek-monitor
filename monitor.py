@@ -108,12 +108,16 @@ def _run_source(
             # ── Bildeanalyse: sjekk bilde hvis beskrivelse er kort/tom OG
             #    tittelen allerede indikerer Stabæk (unngår false positives) ──
             _STABÆK_TITLE = {"stabæk", "stabaek", "stabek", "stabak", "stabbæk"}
+            # Sponsorer i grønn-arm-perioden – «ingen logo → gå etter sponsor».
+            # Lar oss bildeanalysere drakter der selger ikke skrev «Stabæk».
+            _SPONSOR_TITLE = {"kärcher", "karcher", "k-bank", "kbank"}
             _title_lc = ad.get("title", "").lower().replace("\xe6", "ae")
-            _is_stabæk_title = any(t in _title_lc for t in _STABÆK_TITLE)
+            _is_stabæk_title  = any(t in _title_lc for t in _STABÆK_TITLE)
+            _is_sponsor_title = any(t in _title_lc for t in _SPONSOR_TITLE)
             _desc = ad.get("description", "").strip()
             if (len(_desc) < 60          # tom eller kort beskrivelse
                     and ad.get("image_url")
-                    and _is_stabæk_title):
+                    and (_is_stabæk_title or _is_sponsor_title)):
                 if has_green_sleeve(ad["image_url"]):
                     if not _desc:
                         ad["description"] = "grønne ermer (funnet via bildeanalyse)"
