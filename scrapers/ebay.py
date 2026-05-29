@@ -23,8 +23,8 @@ _RSS_URLS = {
     "ebay.co.uk": "https://www.ebay.co.uk/sch/i.html",
     "ebay.de":    "https://www.ebay.de/sch/i.html",
     "ebay.com":   "https://www.ebay.com/sch/i.html",
-    "ebay.fr":    "https://www.ebay.fr/sch/i.html",
     "ebay.nl":    "https://www.ebay.nl/sch/i.html",
+    # ebay.fr fjernet – moderat trim (4 markeder) for raskere runder
 }
 
 _HEADERS_RSS = {
