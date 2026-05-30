@@ -77,8 +77,9 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         # Samlerobjekter
         "autografkort", "autograf-kort", "samlekort", "fotballkort",
         "autograf",  # «div. Stabæk autografer» osv.
-        # Programmer / publikasjoner
-        "programblad", "kampprogram", "program ",
+        # Programmer / publikasjoner / billetter
+        "programblad", "kampprogram", "program ", "programme",
+        "billett", "ticket", "kortstokk", "stickers",
         # Hodeplagg / hals
         "skjerf", " lue", "lue ", "caps ", " caps", "scarf", "halstørkle",
         # Plakater / bilder
