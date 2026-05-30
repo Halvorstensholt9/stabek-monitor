@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,17 @@ _HEADERS = {
     "Accept-Language": "nb-NO,nb;q=0.9,no;q=0.8,en;q=0.6",
     "Accept-Encoding": "gzip, deflate, br",
 }
-_FINN_AD_RE = re.compile(r"finnkode=(\d+)")
+_FINN_AD_RE  = re.compile(r"finnkode=(\d+)")
 _FINN_ALT_RE = re.compile(r"/(\d{6,10})(?:[/?#]|$)")
+# Ny URL-struktur (2026): /recommerce/forsale/item/{ID}
+_FINN_NEW_RE = re.compile(r"/recommerce/forsale/item/(\d+)")
 
 
 class FinnScraper:
     def __init__(self):
-        self.session = requests.Session()
+        # curl_cffi for bedre fingerprint (selv om Finn ikke blokkerer aktivt
+        # nå, gir det robusthet hvis de skrur på beskyttelse).
+        self.session = cf.Session(impersonate="safari17_0")
         self.session.headers.update(_HEADERS)
 
     def search(self, keyword: str) -> List[Dict]:
@@ -165,9 +170,12 @@ class FinnScraper:
     def _parse_html(self, html: str) -> List[Dict]:
         soup = BeautifulSoup(html, "lxml")
         results = []
+        seen_ids = set()
 
-        # Finn.no bruker <article> med data-id eller data-finnkode
+        # Finn.no 2026: <article class="sf-search-ad">. Eldre data-attributter
+        # som data-id/data-finnkode finnes ikke lenger.
         articles = (
+            soup.find_all("article", class_="sf-search-ad") or
             soup.find_all("article", attrs={"data-id": True}) or
             soup.find_all("article", attrs={"data-finnkode": True}) or
             soup.find_all("article")
@@ -175,7 +183,8 @@ class FinnScraper:
 
         for art in articles:
             ad = self._html_article_to_ad(art)
-            if ad:
+            if ad and ad["id"] not in seen_ids:
+                seen_ids.add(ad["id"])
                 results.append(ad)
 
         if not results:
@@ -185,7 +194,16 @@ class FinnScraper:
     def _html_article_to_ad(self, art) -> Optional[Dict]:
         ad_id = art.get("data-id") or art.get("data-finnkode") or ""
 
-        link_tag = art.find("a", href=True)
+        # Foretrekk lenke som matcher /recommerce/forsale/item/{ID} – det er
+        # den faktiske annonse-URL-en i moderne Finn. Andre <a> i kortet
+        # peker til relaterte ting (selger, kategori osv.).
+        link_tag = None
+        for a in art.find_all("a", href=True):
+            if _FINN_NEW_RE.search(a["href"]):
+                link_tag = a
+                break
+        if not link_tag:
+            link_tag = art.find("a", href=True)
         if not link_tag:
             return None
         href = link_tag["href"]
@@ -193,21 +211,31 @@ class FinnScraper:
             href = "https://www.finn.no" + href
 
         if not ad_id:
-            m = _FINN_AD_RE.search(href) or _FINN_ALT_RE.search(href)
+            m = (_FINN_NEW_RE.search(href) or
+                 _FINN_AD_RE.search(href) or
+                 _FINN_ALT_RE.search(href))
             ad_id = m.group(1) if m else href
 
-        # Title
-        h2 = art.find("h2") or art.find("h3")
-        title = h2.get_text(strip=True) if h2 else link_tag.get_text(strip=True)
+        # Title – ofte h2/h3, men også sf-search-ad-link med tekst
+        h2 = art.find(["h2", "h3"])
+        title = h2.get_text(" ", strip=True) if h2 else ""
+        if not title:
+            sf_link = art.find(class_="sf-search-ad-link")
+            if sf_link:
+                title = sf_link.get_text(" ", strip=True)
         if not title:
             return None
 
-        # Price
-        price_tag = (
-            art.find(class_=re.compile(r"price", re.I)) or
-            art.find(attrs={"data-testid": re.compile(r"price", re.I)})
-        )
-        price = price_tag.get_text(strip=True) if price_tag else "Pris ikke oppgitt"
+        # Price – moderne Finn bruker nbsp før "kr": "1 500 kr"
+        price = "Pris ikke oppgitt"
+        price_tag = (art.find(class_=re.compile(r"price", re.I)) or
+                     art.find(attrs={"data-testid": re.compile(r"price", re.I)}))
+        if price_tag:
+            price = price_tag.get_text(" ", strip=True)
+        else:
+            m = re.search(r'(\d[\d\s\xa0]*)\s*kr\b', art.get_text(" "))
+            if m:
+                price = m.group(0).strip()
 
         # Image
         img = art.find("img")
@@ -220,7 +248,7 @@ class FinnScraper:
 
         # Description
         desc_tag = art.find("p")
-        description = desc_tag.get_text(strip=True) if desc_tag else ""
+        description = desc_tag.get_text(" ", strip=True) if desc_tag else ""
 
         return {
             "id": str(ad_id),

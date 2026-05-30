@@ -16,16 +16,21 @@ from typing import Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests as cf  # Chrome-fingerprint mot Cloudflare
 
 logger = logging.getLogger(__name__)
 
-_RSS_URLS = {
-    "ebay.co.uk": "https://www.ebay.co.uk/sch/i.html",
-    "ebay.de":    "https://www.ebay.de/sch/i.html",
-    "ebay.com":   "https://www.ebay.com/sch/i.html",
-    "ebay.nl":    "https://www.ebay.nl/sch/i.html",
-    # ebay.fr fjernet – moderat trim (4 markeder) for raskere runder
+# Per-marked-konfig: (URL, krever_hjemmeside_først)
+# UK og COM er fjernet – eBays JavaScript-utfordring ("Pardon our interruption...")
+# blokkerer curl_cffi der, uansett impersonation. Testet 2026-05-30.
+# DE, NL, FR fungerer med safari17_0; NL trenger hjemmeside-besøk for cookies.
+_MARKETS = {
+    "ebay.de":  ("https://www.ebay.de/sch/i.html",  False),
+    "ebay.nl":  ("https://www.ebay.nl/sch/i.html",  True),
+    # ebay.fr droppet – ustabil (gir splashui-utfordring under last)
 }
+# Bakoverkompatibel alias (deep_scan.py o.a. kan bruke _RSS_URLS)
+_RSS_URLS = {k: v[0] for k, v in _MARKETS.items()}
 
 _HEADERS_RSS = {
     "User-Agent": "Mozilla/5.0 (compatible; RSS reader)",
@@ -33,19 +38,10 @@ _HEADERS_RSS = {
 }
 
 _HEADERS_HTML = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
+    # NB: User-Agent settes automatisk av curl_cffi sin Safari-impersonation.
+    # Ikke sett den her – det overstyrer impersonation og gir 403 fra Cloudflare.
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-GB,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
 }
 
 _ITEM_ID_RE = re.compile(r"/itm/(?:[^/]+/)?(\d+)")
@@ -54,26 +50,37 @@ _NS = {"": "http://www.w3.org/2005/Atom", "atom": "http://www.w3.org/2005/Atom"}
 
 class EbayScraper:
     def __init__(self):
-        self.rss_session  = requests.Session()
-        self.html_session = requests.Session()
-        self.rss_session.headers.update(_HEADERS_RSS)
-        self.html_session.headers.update(_HEADERS_HTML)
+        # Egen Safari-impersonert session per marked – nødvendig fordi
+        # NL krever hjemmeside-besøk for å hente cookies (gjøres én gang her).
+        self.sessions = {}
+        for market, (base_url, needs_home) in _MARKETS.items():
+            s = cf.Session(impersonate="safari17_0")
+            s.headers.update(_HEADERS_HTML)
+            if needs_home:
+                try:
+                    s.get(f"https://www.{market}/", timeout=15)
+                except Exception as exc:
+                    logger.debug("eBay %s hjemmeside-init feilet: %s", market, exc)
+            self.sessions[market] = s
+        # Bakoverkompatibilitet
+        self.html_session = next(iter(self.sessions.values()))
+        self.rss_session  = self.html_session
 
     def search(self, keyword: str) -> List[Dict]:
-        """Søker alle 5 eBay-markeder parallelt for ett søkeord."""
+        """Søker alle aktive eBay-markeder (DE/NL/FR) parallelt for ett søkeord."""
         results = []
 
         def _search_one(site_key, base_url):
-            ads = self._search_rss(keyword, site_key, base_url)
-            if ads is None:
-                ads = self._search_html(keyword, site_key, base_url)
+            # eBays RSS-feed er i praksis deprekert (returnerer tom HTML).
+            # Bruker kun HTML-stien nå.
+            ads = self._search_html(keyword, site_key, base_url)
             logger.info("eBay %s '%s': %d treff", site_key, keyword, len(ads))
             return ads
 
-        with ThreadPoolExecutor(max_workers=5, thread_name_prefix="ebay") as pool:
+        with ThreadPoolExecutor(max_workers=len(_MARKETS), thread_name_prefix="ebay") as pool:
             futures = {
-                pool.submit(_search_one, sk, bu): sk
-                for sk, bu in _RSS_URLS.items()
+                pool.submit(_search_one, sk, base): sk
+                for sk, (base, _) in _MARKETS.items()
             }
             for future in as_completed(futures):
                 try:
@@ -187,52 +194,62 @@ class EbayScraper:
             "_ipg": "60",
         }
         url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        session = self.sessions.get(site_key, self.html_session)
         try:
-            resp = self.html_session.get(url, timeout=20)
+            resp = session.get(url, timeout=20)
             resp.raise_for_status()
-        except requests.HTTPError as exc:
-            logger.warning("eBay HTML %s HTTP-feil for '%s': %s", site_key, keyword, exc)
+        except Exception as exc:
+            logger.warning("eBay HTML %s feil for '%s': %s", site_key, keyword, exc)
             return []
-        except requests.RequestException as exc:
-            logger.error("eBay HTML %s tilkoblingsfeil: %s", site_key, exc)
+        # Sjekk for splashui-utfordring (Pardon our interruption)
+        if "Pardon our interruption" in resp.text[:600]:
+            logger.debug("eBay %s ga splashui-utfordring", site_key)
             return []
         return self._parse_html(resp.text, site_key)
 
     def _parse_html(self, html: str, source: str) -> List[Dict]:
+        # eBay endret HTML-struktur i 2025: li.s-item → li.s-card
+        # (.s-item__* → .s-card__*). Beholder også gamle som fallback.
         soup = BeautifulSoup(html, "lxml")
         ads = []
-        for item in soup.select("li.s-item"):
+        for item in soup.select("li.s-card, li.s-item"):
             ad = self._html_item_to_ad(item, source)
             if ad:
                 ads.append(ad)
         return ads
 
     def _html_item_to_ad(self, item, source: str) -> Optional[Dict]:
-        title_tag = item.select_one(".s-item__title")
+        title_tag = item.select_one(".s-card__title, .s-item__title")
         if not title_tag:
             return None
-        title = title_tag.get_text(strip=True)
+        title = title_tag.get_text(" ", strip=True)
         if title.lower() in ("shop on ebay", "results matching fewer words"):
             return None
 
-        link_tag = item.select_one("a.s-item__link")
-        url = link_tag["href"] if link_tag else ""
+        link_tag = item.select_one("a.s-card__link, a.s-item__link, a[href*='/itm/']")
+        url = link_tag.get("href", "") if link_tag else ""
         m = _ITEM_ID_RE.search(url)
         ad_id = m.group(1) if m else url
         if not ad_id:
             return None
 
-        price_tag = item.select_one(".s-item__price")
-        price = price_tag.get_text(strip=True) if price_tag else "Se eBay"
+        price_tag = item.select_one(".s-card__price, .s-item__price")
+        price = price_tag.get_text(" ", strip=True) if price_tag else "Se eBay"
 
-        img_tag = item.select_one(".s-item__image-wrapper img, .s-item__image img")
+        img_tag = item.select_one(
+            ".s-card__image img, .s-card__media-wrapper img, "
+            ".s-item__image-wrapper img, .s-item__image img"
+        )
         img_url = None
         if img_tag:
             img_url = img_tag.get("data-src") or img_tag.get("src") or ""
             img_url = re.sub(r"s-l\d+\.(jpg|webp|png)", r"s-l500.\1", img_url) or None
 
-        sub_tag = item.select_one(".s-item__subtitle, .s-item__condition")
-        description = sub_tag.get_text(strip=True) if sub_tag else ""
+        sub_tag = item.select_one(
+            ".s-card__subtitle, .s-card__attribute-row, "
+            ".s-item__subtitle, .s-item__condition"
+        )
+        description = sub_tag.get_text(" ", strip=True) if sub_tag else ""
 
         return {
             "id": ad_id,

@@ -1,96 +1,95 @@
 """
 Depop – Internasjonal second-hand plattform, populær blant draktsamlere.
-Bruker Depops web-API (JSON).
+API-en krever auth-token nå; bruker HTML-parsing av søkesiden i stedet.
 """
 
 import logging
+import re
 import urllib.parse
 from typing import Dict, List, Optional
 
-import requests
+from bs4 import BeautifulSoup
+from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
-_API  = "https://webapi.depop.com/api/v2/search/products/"
-_BASE = "https://www.depop.com"
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json",
+_BASE     = "https://www.depop.com"
+_PROD_RE  = re.compile(r"^/products/([^/?#]+)/?")
+_PRICE_RE = re.compile(r"[£$€]\s?[\d,.]+|\b\d[\d,.]*\s?(?:USD|EUR|GBP|kr)\b", re.I)
+_HEADERS  = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-GB,en;q=0.9",
-    "Referer": "https://www.depop.com/",
-    "Origin": "https://www.depop.com",
-    "depop-site-id": "gb",
 }
 
 
 class DepopScraper:
     def __init__(self):
-        self.session = requests.Session()
+        self.session = cf.Session(impersonate="safari17_0")
         self.session.headers.update(_HEADERS)
 
     def search(self, keyword: str) -> List[Dict]:
-        params = {
-            "q": keyword,
-            "itemsPerPage": 24,
-            "country": "gb",
-            "currency": "GBP",
-            "sortBy": "NewestFirst",
-        }
+        url = f"{_BASE}/search/?{urllib.parse.urlencode({'q': keyword})}"
         try:
-            resp = self.session.get(_API, params=params, timeout=20)
-            if resp.status_code in (403, 429):
-                logger.debug("Depop blokkerte forespørselen – 0 treff")
-                return []
+            resp = self.session.get(url, timeout=20, allow_redirects=True)
             resp.raise_for_status()
-            data = resp.json()
-        except (requests.RequestException, ValueError) as exc:
+        except Exception as exc:
             logger.warning("Depop feil for '%s': %s", keyword, exc)
             return []
-
-        products = data.get("products") or data.get("items") or []
-        ads = [ad for ad in (_product_to_ad(p) for p in products) if ad]
+        ads = _parse(resp.text)
         logger.info("Depop '%s': %d treff", keyword, len(ads))
         return ads
 
 
-def _product_to_ad(p: dict) -> Optional[Dict]:
-    pid = str(p.get("id") or p.get("slug") or "")
-    if not pid:
+def _parse(html: str) -> List[Dict]:
+    soup = BeautifulSoup(html, "lxml")
+    results = []
+    seen = set()
+    # Alle produkter ligger som <a href="/products/{slug}/"> inni <li>-elementer.
+    for link in soup.find_all("a", href=_PROD_RE):
+        ad = _link_to_ad(link)
+        if ad and ad["id"] not in seen:
+            seen.add(ad["id"])
+            results.append(ad)
+    return results
+
+
+def _link_to_ad(link) -> Optional[Dict]:
+    href = link.get("href", "")
+    m = _PROD_RE.match(href)
+    if not m:
         return None
+    slug = m.group(1)
+    url = _BASE + href
 
-    slug = p.get("slug") or pid
-    title = (p.get("description") or "").split("\n")[0][:120].strip() or f"Depop-drakt"
+    # Container: nærmeste <li> eller <article>
+    container = link.find_parent("li") or link.find_parent("article") or link.parent
 
-    price = p.get("price") or {}
-    if isinstance(price, dict):
-        amount = price.get("priceAmount") or price.get("amount") or price.get("value")
-        currency = price.get("currencyName") or price.get("currency") or "GBP"
-        price_str = f"{amount} {currency}" if amount else "Se Depop"
-    else:
-        price_str = str(price) if price else "Se Depop"
+    # Tittel: img alt har det vanligvis, men kan også være tom – bruk slug som fallback
+    img = container.find("img") if container else None
+    title = ""
+    if img:
+        title = (img.get("alt") or "").strip()
+    if not title:
+        title = slug.replace("-", " ").rsplit(" ", 1)[0]   # fjern hash-suffix
 
-    pictures = p.get("pictures") or p.get("images") or []
     img_url = None
-    if pictures:
-        first = pictures[0]
-        if isinstance(first, dict):
-            img_url = first.get("url") or first.get("src")
-        elif isinstance(first, str):
-            img_url = first
+    if img:
+        img_url = img.get("src") or img.get("data-src")
 
-    url = p.get("url") or f"{_BASE}/products/{slug}/"
-    if url and not url.startswith("http"):
-        url = _BASE + url
+    # Pris: tekstnode innenfor container som matcher pris-mønster
+    price = "Se Depop"
+    if container:
+        text = container.get_text(" ", strip=True)
+        m_p = _PRICE_RE.search(text)
+        if m_p:
+            price = m_p.group(0)
 
     return {
-        "id": f"depop_{pid}",
-        "source": "depop.com",
-        "title": title,
-        "price": price_str,
-        "url": url,
-        "image_url": img_url,
-        "description": p.get("description") or "",
+        "id":          f"depop_{slug}",
+        "source":      "depop.com",
+        "title":       title[:200],
+        "price":       price,
+        "url":         url,
+        "image_url":   img_url,
+        "description": "",
     }

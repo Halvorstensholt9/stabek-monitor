@@ -1,6 +1,6 @@
 """
-DBA.dk – Dansk finn.no-ekvivalent (Den Blå Avis).
-HTML-parsing av søkeresultater.
+DBA.dk – Dansk markedsplass (Schibsted, samme HTML-plattform som Finn.no).
+Bruker article.sf-search-ad + /recommerce/forsale/item/{ID}.
 """
 
 import logging
@@ -8,36 +8,32 @@ import re
 import urllib.parse
 from typing import Dict, List, Optional
 
-import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
-_BASE = "https://www.dba.dk"
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,*/*;q=0.8",
+_BASE     = "https://www.dba.dk"
+_ITEM_RE  = re.compile(r"/recommerce/forsale/item/(\d+)")
+_HEADERS  = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "da-DK,da;q=0.9,no;q=0.8,en;q=0.6",
 }
 
 
 class DbaScraper:
     def __init__(self):
-        self.session = requests.Session()
+        self.session = cf.Session(impersonate="safari17_0")
         self.session.headers.update(_HEADERS)
 
     def search(self, keyword: str) -> List[Dict]:
         url = f"{_BASE}/soeg/?soeg={urllib.parse.quote(keyword)}&sort=date"
         try:
-            resp = self.session.get(url, timeout=20)
+            resp = self.session.get(url, timeout=20, allow_redirects=True)
             resp.raise_for_status()
-        except requests.RequestException as exc:
+        except Exception as exc:
             logger.warning("DBA.dk feil for '%s': %s", keyword, exc)
             return []
-
         ads = _parse(resp.text)
         logger.info("DBA.dk '%s': %d treff", keyword, len(ads))
         return ads
@@ -46,62 +42,59 @@ class DbaScraper:
 def _parse(html: str) -> List[Dict]:
     soup = BeautifulSoup(html, "lxml")
     results = []
-
-    # DBA bruker <article class="item-list__item"> eller <li class="listed-item">
-    items = (
-        soup.find_all("article", class_=re.compile(r"item", re.I)) or
-        soup.find_all("li", class_=re.compile(r"listed-item|item-list", re.I)) or
-        soup.find_all("div", class_=re.compile(r"result-item|listing-item", re.I))
-    )
-
-    for item in items:
-        ad = _item_to_ad(item)
-        if ad:
+    seen = set()
+    for art in soup.find_all("article", class_="sf-search-ad"):
+        ad = _article_to_ad(art)
+        if ad and ad["id"] not in seen:
+            seen.add(ad["id"])
             results.append(ad)
     return results
 
 
-def _item_to_ad(item) -> Optional[Dict]:
-    link = item.find("a", href=re.compile(r"dba\.dk|^/"))
-    if not link:
-        link = item.find("a", href=True)
+def _article_to_ad(art) -> Optional[Dict]:
+    # Velg lenken som peker til selve annonsen
+    link = None
+    for a in art.find_all("a", href=True):
+        if _ITEM_RE.search(a["href"]):
+            link = a
+            break
     if not link:
         return None
-
     href = link["href"]
-    url = (_BASE + href) if not href.startswith("http") else href
+    if not href.startswith("http"):
+        href = _BASE + href
+    m = _ITEM_RE.search(href)
+    if not m:
+        return None
+    ad_id = m.group(1)
 
-    # ID fra URL
-    m = re.search(r"/(\d{6,})", href)
-    ad_id = m.group(1) if m else re.sub(r"[^a-z0-9]", "_", href)
-
-    title_tag = (
-        item.find(class_=re.compile(r"item-title|listing-title|headline", re.I)) or
-        item.find("h2") or item.find("h3") or item.find("strong")
-    )
-    title = title_tag.get_text(strip=True) if title_tag else link.get_text(strip=True)[:120]
+    h = art.find(["h2", "h3"])
+    title = h.get_text(" ", strip=True) if h else link.get_text(" ", strip=True)
     if not title:
         return None
 
-    price_tag = item.find(class_=re.compile(r"price", re.I))
-    price = price_tag.get_text(strip=True) if price_tag else "Se pris (DKK)"
+    # DBA priser: "1.500 kr." (dansk skrivemåte)
+    price = "Se pris (DKK)"
+    m_p = re.search(r'(\d[\d.\s\xa0]*)\s*kr\.?', art.get_text(" "))
+    if m_p:
+        price = m_p.group(0).strip()
 
-    img = item.find("img")
+    img_tag = art.find("img")
     img_url = None
-    if img:
-        img_url = img.get("data-src") or img.get("src")
+    if img_tag:
+        img_url = img_tag.get("src") or img_tag.get("data-src")
         if img_url and img_url.startswith("//"):
             img_url = "https:" + img_url
 
-    desc_tag = item.find(class_=re.compile(r"desc|body|text", re.I))
-    description = desc_tag.get_text(strip=True) if desc_tag else ""
+    desc_tag = art.find("p")
+    description = desc_tag.get_text(" ", strip=True) if desc_tag else ""
 
     return {
-        "id": f"dba_{ad_id}",
-        "source": "dba.dk",
-        "title": title,
-        "price": price,
-        "url": url,
-        "image_url": img_url,
+        "id":          f"dba_{ad_id}",
+        "source":      "dba.dk",
+        "title":       title,
+        "price":       price,
+        "url":         href,
+        "image_url":   img_url,
         "description": description,
     }
