@@ -18,3 +18,4 @@ __pycache__/
 
 # Facebook cookies
 facebook_cookies.txt
+tracking_state.json

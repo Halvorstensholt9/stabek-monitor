@@ -33,7 +33,8 @@ _HUE_LOW   = 80    # nedre grense: fanger gul-grønn/lime og ren grønn
 _HUE_HIGH  = 210   # øvre grense: fanger teal, turkis og blå-grønn
 _SAT_MIN   = 0.15  # lavt nok til å fange skyggepartier og eldre/falmede drakter
 _VAL_MIN   = 0.08  # lavt nok til å fange svært mørke skyggepartier
-_THRESHOLD = 0.015 # minst 1.5 % av pikslene må treffe (unngår grønne logoer/kanter)
+_THRESHOLD = 0.025 # minst 2.5 % av pikslene må treffe (økt fra 1.5 % for å unngå gress-bakgrunn)
+_SCAN_TOP  = 0.75  # analyser bare øverste 75 % av bildet – kutter bort gressbakgrunn
 
 
 # ── SQLite-cache ─────────────────────────────────────────────────────────────
@@ -113,8 +114,12 @@ def _color_detect_green(img_bytes: bytes) -> bool:
         total = 0
         step = 6  # sample hvert 6. piksel
 
+        # Analyser bare øverste 75 % av bildet – kutter bort gressbakgrunn
+        # i bunnen av produktbilder (spillere på banen, stadion-bakgrunn osv.)
+        scan_height = int(height * _SCAN_TOP)
+
         for x in range(0, width, step):
-            for y in range(0, height, step):
+            for y in range(0, scan_height, step):
                 r, g, b = pixels[x, y]
                 h, s, v = _rgb_to_hsv(r, g, b)
                 total += 1
