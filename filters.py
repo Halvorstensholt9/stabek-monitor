@@ -45,20 +45,15 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         "belsvik",          # Pål Belsvik
         "christer george",  # full navn – unikt nok
     }
-    # ── Draktsponsorer i grønn-arm-perioden (~1990–2004) ─────────────────
-    # Brukes som identifikator når annonsen IKKE nevner «Stabæk» (manglende
-    # logo e.l.) – «ingen logo → gå etter sponsor». Sponsor-only krever
-    # grønt/teal-signal lenger ned (2d), siden samme sponsor kan ha vært på
-    # andre klubbers drakter. Legg nye bekreftede sponsorer her.
-    SPONSOR_NAMES = {
-        "kärcher", "karcher",   # hovedsponsor sent 90-tall / 2000-tall
-        "k-bank", "kbank",      # banksponsor
-    }
+    # SPONSOR_NAMES-bypass FJERNET – Kärcher er en ekte produktprodusent
+    # som lager grønne trykkvaskere/rengjøringsmidler. Bypass-en skapte
+    # 100+ falske treff («Kärcher K2 Hochdruckreiniger» osv.). Sponsorer
+    # blir fortsatt boostet hvis kombinert med «Stabæk» via config-søkene
+    # ("Stabaek Karcher" som søkeord) og høyt-relevans-termer.
     required = [t.lower() for t in cfg.get("required_terms", [])]
     _has_required = any(t in text for t in required)
     _has_player   = any(p in text for p in PLAYER_NAMES)
-    _has_sponsor  = any(sp in text for sp in SPONSOR_NAMES)
-    if not (_has_required or _has_player or _has_sponsor):
+    if not (_has_required or _has_player):
         return False, 0, "mangler stabæk"
 
     # ── 1b. Spillernavn-bypass krever drakt-signal ───────────────────────
@@ -75,14 +70,29 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
             return False, 0, "spillernavn men ingen drakt"
 
     # ── 1c. Hard-filter ikke-drakt merch (globalt) ──────────────────────
-    # Autografkort, skjerf, plakater osv. fanges her uavhengig av score.
-    # Sjekker TITTELEN – ikke beskrivelsen – for å unngå falske treff.
+    # Autografkort, skjerf, gensere, pins, fotballkort osv. fanges her
+    # uavhengig av score. Sjekker TITTELEN – ikke beskrivelsen.
     _title_lc_g = (ad.get("title") or "").lower()
     _MERCH_SIGNALS = {
-        "autografkort", "autograf-kort", "samlekort",
-        "programblad", "kampprogram",
+        # Samlerobjekter
+        "autografkort", "autograf-kort", "samlekort", "fotballkort",
+        "autograf",  # «div. Stabæk autografer» osv.
+        # Programmer / publikasjoner
+        "programblad", "kampprogram", "program ",
+        # Hodeplagg / hals
         "skjerf", " lue", "lue ", "caps ", " caps", "scarf", "halstørkle",
-        "plakat", "poster",
+        # Plakater / bilder
+        "plakat", "poster", "bilde ",
+        # Andre klesplagg som IKKE er drakt
+        "skole genser", "skolegenser", "college genser", "vindjakke",
+        "treningsgenser", "hettegenser",
+        "shorts", "sokker", "sokk ", "sko ",
+        # Pins / merker
+        "pins", "pin ", "buttons", "kniv",
+        # Rengjøring (Kärcher!)
+        "rengjøring", "tepperens", "gulvvasker", "trykkvasker",
+        "høytrykk", "højtryk", "hochdruck", "cleaner",
+        "hagespyler", "vacuum", "støvsuger",
     }
     _JERSEY_TITLE_G = {
         "drakt", "trøye", "jersey", "shirt",
@@ -146,13 +156,7 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
             is_green_sleeve = False
             has_green = False   # ikke gi «grønn farge»-poeng til moderne drakt
 
-    # ── 2d. Sponsor-only krever grønt signal ────────────────────────────
-    # Annonse uten «Stabæk»/spillernavn som KUN matchet via sponsor må ha
-    # grønt/teal-erme (i tekst eller via bildeanalyse) – ellers kan det være
-    # en annen klubb med samme sponsor. «Ingen logo → gå etter sponsor.»
-    if _has_sponsor and not _has_required and not _has_player:
-        if not (is_green_sleeve or has_green):
-            return False, 0, "sponsor uten grønt signal"
+    # (2d-sponsor-sjekk fjernet – SPONSOR_NAMES-bypass droppet pga. false positives)
 
     # ── 3. Hard excludes – grønne ermer passerer ALLTID ─────────────────
     if not is_green_sleeve:
