@@ -44,6 +44,7 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         "kjoensberg",       # skrivemåte uten æ
         "belsvik",          # Pål Belsvik
         "christer george",  # full navn – unikt nok
+        "lambech",          # bekreftet 2026-05-30: Adidas Stabæk JF 2001 #10
     }
     # SPONSOR_NAMES-bypass FJERNET – Kärcher er en ekte produktprodusent
     # som lager grønne trykkvaskere/rengjøringsmidler. Bypass-en skapte
