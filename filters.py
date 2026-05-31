@@ -57,6 +57,21 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     if not (_has_required or _has_player):
         return False, 0, "mangler stabæk"
 
+    # ── 1a. «stabak»-only er for løst – krever fotball-kontekst ─────────
+    # «stabak» (uten æ) matcher DJ Stabak (vinyl), «STAY BACK»-skilt,
+    # tilfeldige etternavn osv. Hvis ENESTE match er «stabak»/«stabek»
+    # (uten æ), krev at en fotball-relatert term er til stede.
+    _has_strict_stab = bool(re.search(r"\bstab[æbk]+", text))   # stabæk eller stabbæk
+    if not _has_strict_stab and _has_required and not _has_player:
+        _FOOTBALL_CTX = {
+            "drakt", "trøye", "jersey", "shirt", "trikot", "tröja", "trøje",
+            "fotball", "football", "soccer", "voetbal", "fodbold", "fußball",
+            "if ", " if", "fotballklubb", "fc ", " fc", "klubb",
+            "sponsor", "hjemmedrakt", "bortedrakt", "kit",
+        }
+        if not any(w in text for w in _FOOTBALL_CTX):
+            return False, 0, "stabak uten fotball-kontekst"
+
     # ── 1b. Spillernavn-bypass krever drakt-signal ───────────────────────
     # Hvis treffet kom via spillernavn (ikke required_terms), må teksten
     # inneholde et drakt-ord – fanger bøker/sanger/album om spillere.
@@ -78,9 +93,17 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         # Samlerobjekter
         "autografkort", "autograf-kort", "samlekort", "fotballkort",
         "autograf",  # «div. Stabæk autografer» osv.
-        # Programmer / publikasjoner / billetter
+        # Programmer / publikasjoner / billetter / bøker
         "programblad", "kampprogram", "program ", "programme",
         "billett", "ticket", "kortstokk", "stickers",
+        "bok ", "bok.", "historikk", "vinyl", "maxi 12", " 12\"",
+        " 7\"", " lp", "ep ", "cd ", "dvd ", " dvd",
+        # Tilfeldige navne-kollisjoner
+        "license plate", "vanity plate", "stay back",
+        "stabekk skole", "stabekk school",
+        # Skjerf på flere språk
+        "fanschal", "schal", "sciarpa", "halsdoek",
+        "elsker stabæk",  # supporter-merch
         # Hodeplagg / hals
         "skjerf", " lue", "lue ", "caps ", " caps", "scarf", "halstørkle",
         # Plakater / bilder
