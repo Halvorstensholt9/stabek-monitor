@@ -41,31 +41,48 @@ def fetch_status(url: str) -> str:
     r = s.get(url, timeout=25, allow_redirects=True)
     r.raise_for_status()
     text = BeautifulSoup(r.text, "lxml").get_text(" ", strip=True)
-    # Aftership-mønster: "...phone... <STATUS> Check back later..."
-    m = re.search(
-        r"(?:\+\d[\d\-\s]+|Poczta Polska|carrier|Carrier)\s+"
-        r"(.+?)\s+(?:Check back later|Last update|Tracking history|Contact Us)",
+
+    # Aftership-siden viser sjekkpunkter på formen:
+    #   "Checkpoint timezone May 30, 2026 12:19 PM The package has been
+    #    picked up and is in transit."
+    # Vi vil ha selve meldingen + dato i én linje.
+    cp = re.search(
+        r"Checkpoint timezone\s+"
+        r"([A-Z][a-z]+ \d+,\s*\d{4}\s+\d+:\d+\s*[AP]M)\s+"
+        r"(.+?)(?:\s+Posten|\s+Contact Us|\s+Last update|\s+Tracking history|$)",
         text,
     )
-    if m:
-        status = m.group(1).strip()
-        # Fjern ledende telefonnummer hvis regex tok det med
-        status = re.sub(r"^\+?\d[\d\-\s]{6,}\s+", "", status).strip()
-        return status
-    # Fallback: led etter kjente status-fraser
+    if cp:
+        when, what = cp.group(1).strip(), cp.group(2).strip()
+        return f"{what} ({when})"
+
+    # Fallback til kjente faseord
     for phrase in [
         "Delivered",
         "Out for delivery",
+        "Available for pickup",
+        "Customs clearance",
+        "Arrived at destination",
         "In transit",
+        "Picked up",
         "Awaiting shipment",
-        "Order prepared",
         "Your order has been prepared",
+        "Order prepared",
         "Pending",
         "Exception",
         "Returned",
     ]:
         if phrase.lower() in text.lower():
             return phrase
+
+    # Siste fallback: gammel regex (kan være rotete men bedre enn ingenting)
+    m = re.search(
+        r"(?:\+\d[\d\-\s]+|Poczta Polska|carrier|Carrier)\s+"
+        r"(.+?)\s+(?:Check back later|Last update|Tracking history|Contact Us)",
+        text,
+    )
+    if m:
+        return re.sub(r"^\+?\d[\d\-\s]{6,}\s+", "", m.group(1).strip())
     return "Ukjent (parser-feil)"
 
 
