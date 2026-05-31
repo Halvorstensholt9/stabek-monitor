@@ -1,54 +1,65 @@
 """
 Reddit – søker i relevante fotball-subreddits etter Stabæk-drakter.
-Bruker Reddits offentlige JSON-API (ingen innlogging nødvendig).
+Bruker RSS-feed (search.rss). JSON-API blokkeres nå med 403, men
+RSS slipper fortsatt gjennom (testet 2026-05-31).
 """
 
 import logging
 import re
-import time
+import urllib.parse
+import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
 
-import requests
+from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
 _BASE    = "https://www.reddit.com"
 _HEADERS = {
-    # Reddit krever en ikke-tom User-Agent
-    "User-Agent": "StabaekDraktMonitor/1.1 (vintage football shirt tracker; by stabæk-fan)",
-    "Accept": "application/json",
+    "User-Agent": "StabaekDraktMonitor/1.2 (vintage football shirt tracker; by stabaek-fan)",
 }
 
 # Søk i alle disse subredditsene samlet (+ betyr OR)
-_SUBREDDIT_COMBO = "footballjerseys+classicfootball+soccer_jerseys+SoccerJerseys+UKFootball+soccermarket"
+_SUBREDDIT_COMBO = (
+    "footballjerseys+classicfootball+soccer_jerseys+"
+    "SoccerJerseys+UKFootball+soccermarket"
+)
+
+_NS = {"atom": "http://www.w3.org/2005/Atom"}
+_PRICE_RE = re.compile(
+    r"(?:£|€|\$|kr|GBP|USD|EUR|NOK)\s*[\d,]+|[\d,]+\s*(?:kr|NOK|GBP|USD|EUR)",
+    re.I,
+)
+_ID_RE = re.compile(r"/comments/([a-z0-9]+)/")
 
 
 class RedditScraper:
     def __init__(self):
-        self.session = requests.Session()
+        self.session = cf.Session(impersonate="safari17_0")
         self.session.headers.update(_HEADERS)
 
     def search(self, keyword: str) -> List[Dict]:
-        url    = f"{_BASE}/r/{_SUBREDDIT_COMBO}/search.json"
+        url = f"{_BASE}/r/{_SUBREDDIT_COMBO}/search.rss"
         params = {
             "q":           keyword,
             "restrict_sr": "1",
             "sort":        "new",
             "limit":       25,
-            "t":           "year",   # siste år
+            "t":           "year",
         }
         try:
-            resp = self.session.get(url, params=params, timeout=25)
+            full = f"{url}?{urllib.parse.urlencode(params)}"
+            resp = self.session.get(full, timeout=25)
             resp.raise_for_status()
-            data = resp.json()
+            # ET.fromstring trenger bytes for å håndtere XML-erklæringens encoding
+            root = ET.fromstring(resp.content)
         except Exception as exc:
             logger.warning("Reddit feil for '%s': %s", keyword, exc)
             return []
 
-        posts = data.get("data", {}).get("children", [])
-        ads   = []
-        for post in posts:
-            ad = _post_to_ad(post.get("data", {}))
+        ads = []
+        for entry in root.findall("atom:entry", _NS):
+            ad = _entry_to_ad(entry)
             if ad:
                 ads.append(ad)
 
@@ -56,41 +67,46 @@ class RedditScraper:
         return ads
 
 
-def _post_to_ad(p: dict) -> Optional[Dict]:
-    post_id = p.get("id", "")
-    title   = p.get("title", "").strip()
-    if not post_id or not title:
+def _entry_to_ad(entry) -> Optional[Dict]:
+    def get(tag):
+        el = entry.find(f"atom:{tag}", _NS)
+        return el.text if el is not None and el.text else ""
+
+    title = get("title").strip()
+    if not title:
         return None
 
-    permalink = p.get("permalink", "")
-    url       = (_BASE + permalink).rstrip("/") if permalink else _BASE
-    subreddit = p.get("subreddit", "")
+    # <link href="..." />
+    link_el = entry.find("atom:link", _NS)
+    url = link_el.get("href") if link_el is not None else ""
+    if not url:
+        return None
 
-    # Tekst / beskrivelse
-    selftext    = p.get("selftext", "")[:300]
-    description = selftext if selftext and selftext != "[removed]" else ""
+    m = _ID_RE.search(url)
+    post_id = m.group(1) if m else url.rsplit("/", 1)[-1]
 
-    # Prøv å plukke ut pris fra tittel/tekst
-    price  = "Se innlegg"
-    pm     = re.search(
-        r"(?:£|€|\$|kr|GBP|USD|EUR|NOK)\s*[\d,]+|[\d,]+\s*(?:kr|NOK|GBP|USD|EUR)",
-        title + " " + selftext, re.I,
-    )
-    if pm:
-        price = pm.group(0).strip()
+    # Sub-Reddit fra URL: /r/<name>/comments/...
+    m_sub = re.search(r"/r/([a-zA-Z0-9_]+)/", url)
+    subreddit = m_sub.group(1) if m_sub else "reddit"
 
-    # Bilde (Reddit returnerer HTML-escaped URL-er)
+    # Innhold i <content> er HTML i en <div> – plukk ut tekst og bilde
+    content = get("content")
+    description = ""
     img_url = None
-    preview = p.get("preview", {})
-    images  = preview.get("images", [])
-    if images:
-        src     = images[0].get("source", {})
-        img_url = src.get("url", "").replace("&amp;", "&")
-    if not img_url and p.get("thumbnail", "").startswith("http"):
-        img_url = p["thumbnail"]
+    if content:
+        # Plukk bilde fra første <img src="...">
+        m_img = re.search(r'<img[^>]+src="([^"]+)"', content)
+        if m_img:
+            img_url = m_img.group(1).replace("&amp;", "&")
+        # Strip HTML for tekst-snippet
+        description = re.sub(r"<[^>]+>", " ", content)
+        description = re.sub(r"\s+", " ", description).strip()[:300]
 
-    flair = p.get("link_flair_text") or ""
-    desc  = f"[{flair}] {description}".strip("[] ") if flair else description
+    # Pris fra tittel/beskrivelse
+    price = "Se innlegg"
+    m_p = _PRICE_RE.search(title + " " + description)
+    if m_p:
+        price = m_p.group(0).strip()
 
     return {
         "id":          f"reddit_{post_id}",
@@ -99,5 +115,5 @@ def _post_to_ad(p: dict) -> Optional[Dict]:
         "price":       price,
         "url":         url,
         "image_url":   img_url,
-        "description": desc,
+        "description": description,
     }
