@@ -1,183 +1,192 @@
 """
-Tise-scraper.
-Tise er Norges største bruktapp for klær og utstyr.
-Søke-URL: https://tise.com/search?query=QUERY
+Tise – norsk second-hand-app.
+
+Tise er en SPA bak AWS WAF Bot Control – krever browser-automation
+(Playwright med headless Chromium) for å løse JS-utfordringen.
+
+Strategi:
+  1. Hold ÉN browser-instans i live for hele monitorens levetid (lazy init).
+  2. Første navigering løser WAF-utfordringen og setter aws-waf-token cookie.
+  3. Påfølgende søk gjenbruker samme context og kjører raskt.
 """
 
-import json
+import atexit
 import logging
 import re
+import threading
 import urllib.parse
 from typing import Dict, List, Optional
 
-import requests
-from bs4 import BeautifulSoup
-
 logger = logging.getLogger(__name__)
 
-# Tise prøver disse URL-ene i rekkefølge til én returnerer 200
-_SEARCH_CANDIDATES = [
-    ("https://tise.com/search",   "q"),
-    ("https://tise.com/search",   "query"),
-    ("https://tise.com/listings", "q"),
-    ("https://tise.com/explore",  "q"),
-]
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "nb-NO,nb;q=0.9,no;q=0.8,en;q=0.6",
-}
+_BASE   = "https://tise.com"
+_SEARCH = f"{_BASE}/search/tise"
+_ITEM_RE = re.compile(r"/t/([A-Za-z0-9_-]{6,})")
+
+# Modulen holder én singleton-browser for hele prosessens levetid.
+_browser_lock = threading.Lock()
+_playwright   = None
+_browser      = None
+_context      = None
+
+
+def _ensure_browser():
+    """Lazy-init av Playwright + headless Chromium. Idempotent og trådsikker."""
+    global _playwright, _browser, _context
+    if _context is not None:
+        return _context
+    with _browser_lock:
+        if _context is not None:
+            return _context
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            logger.error("Tise: Playwright ikke installert "
+                         "(pip install playwright && playwright install chromium)")
+            return None
+        try:
+            _playwright = sync_playwright().start()
+            _browser = _playwright.chromium.launch(headless=True)
+            _context = _browser.new_context(
+                user_agent=("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+                            "Version/17.0 Safari/605.1.15"),
+                locale="nb-NO",
+                viewport={"width": 1280, "height": 800},
+            )
+            # Førstegangs-besøk for å løse WAF-utfordring og hente cookies
+            page = _context.new_page()
+            page.goto(f"{_BASE}/", wait_until="domcontentloaded", timeout=30_000)
+            page.wait_for_timeout(2_500)
+            # Lukk cookie-modal (Accept) – ellers blokkerer den klikk på søk
+            _dismiss_cookie_modal(page)
+            page.close()
+            logger.info("Tise: Playwright + Chromium klar (WAF-cookie hentet)")
+        except Exception as exc:
+            logger.error("Tise: kunne ikke starte browser: %s", exc)
+            _close_browser()
+            return None
+        return _context
+
+
+def _close_browser():
+    global _playwright, _browser, _context
+    try:
+        if _context: _context.close()
+    except Exception: pass
+    try:
+        if _browser: _browser.close()
+    except Exception: pass
+    try:
+        if _playwright: _playwright.stop()
+    except Exception: pass
+    _context = _browser = _playwright = None
+
+
+atexit.register(_close_browser)
+
+
+def _dismiss_cookie_modal(page):
+    """Klikk Accept/Aksepter i cookie-modalen hvis den vises. Idempotent."""
+    try:
+        # Tise oversetter UI etter locale – matcher både engelsk og norsk
+        btn = page.get_by_role("button", name=re.compile(r"^(Accept|Aksepter)$", re.I))
+        if btn.count() > 0:
+            btn.first.click(timeout=3_000)
+            page.wait_for_timeout(800)
+    except Exception:
+        pass
 
 
 class TiseScraper:
-    def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update(_HEADERS)
-
     def search(self, keyword: str) -> List[Dict]:
-        resp = self._fetch(keyword)
-        if resp is None:
+        ctx = _ensure_browser()
+        if ctx is None:
             return []
-        ads = self._parse_next_data(resp.text) or self._parse_html(resp.text)
-        logger.info("Tise '%s': %d treff", keyword, len(ads))
-        return ads
-
-    def _fetch(self, keyword: str):
-        """Prøver URL-kandidatene til én returnerer 200."""
-        for base_url, param in _SEARCH_CANDIDATES:
-            url = f"{base_url}?{urllib.parse.urlencode({param: keyword})}"
-            try:
-                resp = self.session.get(url, timeout=20)
-                if resp.status_code == 200:
-                    logger.debug("Tise treffer på: %s", url)
-                    return resp
-                logger.debug("Tise %s returnerte %d", url, resp.status_code)
-            except requests.RequestException as exc:
-                logger.debug("Tise %s feil: %s", url, exc)
-        logger.warning("Tise: ingen URL-kandidat fungerte for '%s'", keyword)
-        return None
-
-    # ── JSON-strategi (Next.js) ───────────────────────────────────────────
-
-    def _parse_next_data(self, html: str) -> List[Dict]:
-        soup = BeautifulSoup(html, "lxml")
-        tag = soup.find("script", id="__NEXT_DATA__")
-        if not tag or not tag.string:
-            return []
+        page = None
         try:
-            data = json.loads(tag.string)
-        except json.JSONDecodeError:
+            page = ctx.new_page()
+            # Tises SPA respekterer ikke URL-search-param ved direkte navigasjon
+            # (returnerer cached homepage-feed). Vi må bruke selve søkeboksen
+            # for å trigge søk-state-en i React-routeren.
+            page.goto(f"{_BASE}/", wait_until="domcontentloaded", timeout=25_000)
+            page.wait_for_timeout(1_500)
+            # Lukk cookie-modal i tilfelle den dukker opp på nytt
+            try:
+                page.evaluate("""() => {
+                    const modal = document.querySelector('.ReactModal__Overlay--after-open');
+                    if (!modal) return;
+                    for (const b of modal.querySelectorAll('button')) {
+                        const t = b.textContent.toLowerCase();
+                        if (t.includes('accept') || t.includes('godta')) { b.click(); return; }
+                    }
+                }""")
+                page.wait_for_timeout(500)
+            except Exception:
+                pass
+            # Fyll søke-input og trykk Enter
+            search_input = page.locator('input[type="search"]').first
+            search_input.click(timeout=10_000)
+            search_input.fill(keyword)
+            page.keyboard.press("Enter")
+            # Vent på at søkeresultater lastes
+            page.wait_for_load_state("networkidle", timeout=20_000)
+            page.wait_for_timeout(2_000)
+
+            items = page.evaluate("""
+                () => {
+                  const out = [];
+                  const links = document.querySelectorAll('a[href*="/t/"]');
+                  const seen = new Set();
+                  for (const a of links) {
+                    const m = a.getAttribute('href').match(/^\\/t\\/([A-Za-z0-9_-]{6,})/);
+                    if (!m) continue;
+                    const id = m[1];
+                    if (seen.has(id)) continue;
+                    seen.add(id);
+                    let card = a.closest('article') || a.closest('li') || a.parentElement;
+                    const img = card?.querySelector('img');
+                    const titleEl = card?.querySelector(
+                      'h2, h3, [class*="title"], [class*="name"]'
+                    );
+                    const title = titleEl?.textContent?.trim()
+                                  || img?.alt?.trim()
+                                  || a.textContent?.trim();
+                    const priceEl = card?.querySelector(
+                      '[class*="price"], [data-test*="price"]'
+                    );
+                    out.push({
+                      id,
+                      title: title || '',
+                      url: a.href,
+                      img: img?.src || img?.dataset?.src || '',
+                      price: priceEl?.textContent?.trim() || '',
+                    });
+                  }
+                  return out;
+                }
+            """)
+
+            ads = []
+            for it in items:
+                if not it.get("title"):
+                    continue
+                ads.append({
+                    "id":          f"tise_{it['id']}",
+                    "source":      "tise.com",
+                    "title":       it["title"][:200],
+                    "price":       it["price"] or "Se Tise",
+                    "url":         it["url"],
+                    "image_url":   it["img"] or None,
+                    "description": "",
+                })
+            logger.info("Tise '%s': %d treff", keyword, len(ads))
+            return ads
+
+        except Exception as exc:
+            logger.warning("Tise feil for '%s': %s", keyword, exc)
             return []
-
-        items = _find_items(data)
-        if not items:
-            return []
-        return [ad for ad in (_item_to_ad(i) for i in items) if ad]
-
-    # ── HTML-fallback ────────────────────────────────────────────────────
-
-    def _parse_html(self, html: str) -> List[Dict]:
-        soup = BeautifulSoup(html, "lxml")
-        results = []
-        for a_tag in soup.find_all("a", href=re.compile(r"/(listing|item)/", re.I)):
-            ad = _card_to_ad(a_tag)
-            if ad:
-                results.append(ad)
-        return results
-
-
-def _item_to_ad(item: dict) -> Optional[Dict]:
-    if not isinstance(item, dict):
-        return None
-
-    item_id = str(item.get("id") or item.get("uuid") or "")
-    if not item_id:
-        return None
-
-    title = (item.get("title") or "").strip() or (
-        (item.get("description") or "").split("\n")[0][:120]
-    ) or "Tise-annonse"
-
-    price_raw = item.get("price") or item.get("priceNOK") or item.get("amount") or {}
-    if isinstance(price_raw, dict):
-        amount = price_raw.get("amount") or price_raw.get("value")
-        price_str = f"{amount} kr" if amount else "Se Tise"
-    elif price_raw:
-        price_str = f"{price_raw} kr"
-    else:
-        price_str = "Se Tise"
-
-    photos = item.get("photos") or item.get("images") or []
-    img_url = None
-    if photos:
-        first = photos[0] if isinstance(photos, list) else photos
-        if isinstance(first, dict):
-            img_url = (first.get("url") or first.get("src") or
-                       first.get("medium") or first.get("thumbnail"))
-        elif isinstance(first, str):
-            img_url = first
-
-    slug = item.get("slug") or item.get("url") or item_id
-    if slug and slug.startswith("http"):
-        url = slug
-    else:
-        url = f"https://tise.com/listing/{slug}"
-
-    return {
-        "id": f"tise_{item_id}",
-        "source": "tise.com",
-        "title": title,
-        "price": price_str,
-        "url": url,
-        "image_url": img_url,
-        "description": (item.get("description") or ""),
-    }
-
-
-def _card_to_ad(tag) -> Optional[Dict]:
-    href = tag.get("href", "")
-    if not href:
-        return None
-    url = f"https://tise.com{href}" if not href.startswith("http") else href
-    m = re.search(r"/(listing|item)/([^/?#]+)", href)
-    ad_id = m.group(2) if m else re.sub(r"[^a-z0-9]", "_", href)
-
-    img = tag.find("img")
-    title = (img.get("alt") if img else None) or tag.get_text(strip=True)[:120] or "Tise-annonse"
-    img_url = (img.get("src") or img.get("data-src")) if img else None
-
-    return {
-        "id": f"tise_{ad_id}",
-        "source": "tise.com",
-        "title": title,
-        "price": "Se Tise",
-        "url": url,
-        "image_url": img_url,
-        "description": "",
-    }
-
-
-def _find_items(data, depth: int = 0, max_depth: int = 9):
-    if depth > max_depth:
-        return None
-    if isinstance(data, list) and data:
-        first = data[0]
-        if isinstance(first, dict) and any(
-            k in first for k in ("id", "uuid", "title", "slug", "price")
-        ):
-            return data
-    if isinstance(data, dict):
-        for key in ("items", "listings", "products", "results", "hits", "data", "nodes", "edges"):
-            if key in data:
-                result = _find_items(data[key], depth + 1, max_depth)
-                if result:
-                    return result
-        for value in data.values():
-            if isinstance(value, (dict, list)):
-                result = _find_items(value, depth + 1, max_depth)
-                if result:
-                    return result
-    return None
+        finally:
+            if page:
+                try: page.close()
+                except Exception: pass
