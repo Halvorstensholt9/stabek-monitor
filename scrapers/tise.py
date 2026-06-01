@@ -124,8 +124,9 @@ class TiseScraper:
                 page.wait_for_timeout(500)
             except Exception:
                 pass
-            # Fyll søke-input og trykk Enter
-            search_input = page.locator('input[type="search"]').first
+            # Tise har TO søke-input: #0 i header (gjemt bak nav-bar, ikke
+            # klikkbar) og #1 nede på siden (klikkbar). Bruker den synlige.
+            search_input = page.locator('input[type="search"]').nth(1)
             search_input.click(timeout=10_000)
             search_input.fill(keyword)
             page.keyboard.press("Enter")
