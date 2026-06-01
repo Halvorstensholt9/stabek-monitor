@@ -105,18 +105,26 @@ def _run_source(
             if not is_new:
                 continue
 
-            # ── Bildeanalyse på drakt-titler: berik beskrivelse hvis bilde
-            #    bekrefter grønne ermer (kun «Stabæk + drakt-ord»-titler) ──
+            # ── Bildeanalyse: kjør på ALLE Stabæk-drakt-annonser med bilde,
+            #    ikke bare ved kort beskrivelse. Fanger grønne ermer som
+            #    teksten ikke nevner. Bildet er sannhetskilde.
+            #
+            # Også triggert ved bekreftet Stabæk-spillernavn i tittel,
+            # selv om «Stabæk» ikke står der (Lambech, Allanzinho osv.).
             _STABÆK_TITLE = {"stabæk", "stabaek", "stabek", "stabak", "stabbæk"}
             _JERSEY_WORD  = {"drakt", "trøye", "jersey", "shirt", "trikot"}
+            _PLAYER_TITLE = {"allanzinho", "bakircioglu", "nannskog", "veigar",
+                             "kjønsberg", "kjoensberg", "belsvik", "lambech",
+                             "christer george"}
             _title_lc = ad.get("title", "").lower().replace("\xe6", "ae")
             _is_stabæk_title = any(t in _title_lc for t in _STABÆK_TITLE)
             _has_jersey_word = any(w in _title_lc for w in _JERSEY_WORD)
+            _has_player_in_title = any(p in _title_lc for p in _PLAYER_TITLE)
             _desc = ad.get("description", "").strip()
-            if (len(_desc) < 60
-                    and ad.get("image_url")
-                    and _is_stabæk_title
-                    and _has_jersey_word):
+            # Kjør bildeanalyse på alt som ser ut som en Stabæk-drakt-annonse
+            # (Stabæk-tittel + drakt-ord  ELLER  bekreftet spillernavn)
+            if (ad.get("image_url")
+                    and ((_is_stabæk_title and _has_jersey_word) or _has_player_in_title)):
                 if has_green_sleeve(ad["image_url"]):
                     if not _desc:
                         ad["description"] = "grønne ermer (funnet via bildeanalyse)"
