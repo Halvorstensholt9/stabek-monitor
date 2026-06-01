@@ -105,22 +105,18 @@ def _run_source(
             if not is_new:
                 continue
 
-            # ── Bildeanalyse: sjekk bilde hvis beskrivelse er kort/tom OG
-            #    tittelen allerede indikerer Stabæk (unngår false positives) ──
-            # Sponsor-trigger for bildeanalyse FJERNET – Kärcher er en ekte
-            # produktprodusent og produktene er ofte grønne, så det skapte
-            # massiv falsk-positiv-flom. Bildeanalyse kjøres KUN på items
-            # med «Stabæk» i tittelen OG drakt-ord i tittelen.
+            # ── Bildeanalyse på drakt-titler: berik beskrivelse hvis bilde
+            #    bekrefter grønne ermer (kun «Stabæk + drakt-ord»-titler) ──
             _STABÆK_TITLE = {"stabæk", "stabaek", "stabek", "stabak", "stabbæk"}
             _JERSEY_WORD  = {"drakt", "trøye", "jersey", "shirt", "trikot"}
             _title_lc = ad.get("title", "").lower().replace("\xe6", "ae")
             _is_stabæk_title = any(t in _title_lc for t in _STABÆK_TITLE)
             _has_jersey_word = any(w in _title_lc for w in _JERSEY_WORD)
             _desc = ad.get("description", "").strip()
-            if (len(_desc) < 60          # tom eller kort beskrivelse
+            if (len(_desc) < 60
                     and ad.get("image_url")
                     and _is_stabæk_title
-                    and _has_jersey_word):    # krev drakt-ord i tittel
+                    and _has_jersey_word):
                 if has_green_sleeve(ad["image_url"]):
                     if not _desc:
                         ad["description"] = "grønne ermer (funnet via bildeanalyse)"
@@ -130,6 +126,19 @@ def _run_source(
 
             keep, score, reason = evaluate(ad, filter_cfg)
             if keep:
+                # ── OBLIGATORISK bilde-verifisering ved 🟢 GRØNNE ERMER ──
+                # Filteret kan utløse alarmen via tekst alene (selger skrev
+                # «grønne ermer»), men bildet er sannhetskilden. Hvis bilde
+                # finnes og det IKKE bekrefter grønt, nedgraderes alarmen.
+                if "GRØNNE ERMER" in reason and ad.get("image_url"):
+                    if not has_green_sleeve(ad["image_url"]):
+                        logger.info("📷 Bilde benektet grønne ermer – nedgrader: %s",
+                                    ad.get("title"))
+                        # Fjern alarm-prefiks fra reason og senk score
+                        reason = ("tekst sa grønn, bilde sier nei | "
+                                  + reason.replace("🟢 GRØNNE ERMER | ", "")
+                                          .replace("🟢 GRØNNE ERMER", "").strip(" |"))
+                        score = max(1, score - 15)
                 symbol = "⭐" if score >= 2 else "►"
                 logger.info(
                     "%s NYTT TREFF [score=%d] %s | %s",
