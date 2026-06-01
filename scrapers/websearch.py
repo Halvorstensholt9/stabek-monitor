@@ -55,6 +55,25 @@ _BLOCKED_DOMAINS = {
     "github.com", "githubusercontent.com",     # vårt eget repo
     "espn.com", "espnfc.com", "skysports.com", "bbc.com", "bbc.co.uk",
     "linkedin.com", "tiktok.com", "pinterest.com",
+    # Informasjons- og statistikksider (ikke butikker)
+    "footballkitarchive.com", "footballdatabase.eu", "worldfootball.net",
+    "nationalfootballteams.com", "soccerbase.com", "fotmob.com",
+    "colours-of-football.com", "footballshirtculture.com",
+    "footballshirts.com", "footballshirtcollective.com",   # informasjonsblogg
+    "sofascore.com", "flashscore.com", "besoccer.com", "globalsportsarchive.com",
+    # Bildebanker
+    "alamy.com", "gettyimages.com", "shutterstock.com", "istockphoto.com",
+    "imago-images.com", "dreamstime.com",
+    # Generisk print-on-demand (ikke ekte vintage)
+    "redbubble.com", "spreadshirt.com", "zazzle.com", "teespring.com",
+    "teepublic.com",
+    # Norsk presse / blogger
+    "sportsbibelen.no", "altomstabek.no", "kreativtforum.no",
+    "nettavisen.no", "fotball.no", "ndla.no",
+    # Andre nyhets-/oppslagsverk
+    "footballia.net", "fotbollskanalen.se", "ronaldo7.net",
+    "weltfussball.de", "footballorgin.com", "footballfanbase.com",
+    "thesportsdb.com",
 }
 
 

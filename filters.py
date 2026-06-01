@@ -106,10 +106,15 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         " lue", "lue ", "caps ", " caps",
         # Plakater / bilder
         "plakat", "poster", "bilde ",
-        # Andre klesplagg som IKKE er drakt
+        # Andre klesplagg som IKKE er drakt (matchdrakt)
         "skole genser", "skolegenser", "college genser", "vindjakke",
         "treningsgenser", "hettegenser",
+        "treningstrøye", "treningsdrakt", "treningsoverall",
+        "training top", "training trikot", "training kit",
+        "trainingsanzug", "allenamento", "trainings",
         "shorts", "sokker", "sokk ", "sko ",
+        # Macron = Stabæks moderne (2018+) leverandør – ALDRI grailen
+        "macron",
         # Pins / merker
         "pins", "pin ", "buttons", "kniv",
         # Rengjøring (Kärcher!)

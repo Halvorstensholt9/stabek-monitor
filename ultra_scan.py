@@ -18,9 +18,10 @@ from typing import Dict, List
 
 import yaml
 
-from database import Database
-from filters   import evaluate
-from notifier  import Telegram
+from database       import Database
+from filters         import evaluate
+from notifier        import Telegram
+from image_analyzer  import has_green_sleeve
 
 from scrapers.finn                  import FinnScraper
 from scrapers.ebay                  import EbayScraper
@@ -39,6 +40,10 @@ from scrapers.draktgata             import DraktgataScraper
 from scrapers.marktplaats           import MarktplaatsScraper
 from scrapers.grailed               import GrailedScraper
 from scrapers.cultkits              import CultKitsScraper
+from scrapers.classickits           import ClassicKitsNoScraper
+from scrapers._532                  import S532Scraper
+from scrapers.websearch             import WebSearchScraper
+from scrapers.tise                  import TiseScraper
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
@@ -49,41 +54,61 @@ logger = logging.getLogger("ultra")
 # ── Vid søkeordliste – brukes på ALLE kilder ─────────────────────────────────
 
 QUERIES = [
-    # Klubbnavn (mange skrivemåter)
+    # ── Klubbnavn (alle kjente skrivemåter) ─────────────────────────
     "stabæk", "stabaek", "stabek", "stabak", "stabbæk",
     "stabaek fotball", "stabaek if", "stabæk if", "stabæk fotball",
-    "stabæk football", "stabaek football",
-    # Drakt-typer
+    "stabæk football", "stabaek football", "stabaek FC",
+    "stabaek bærum", "stabaek bærum if",
+    # ── Drakt-typer på 5+ språk ─────────────────────────────────────
     "stabæk drakt", "stabaek shirt", "stabaek jersey", "stabaek trikot",
     "stabæk trøye", "stabæk hjemmedrakt", "stabæk bortedrakt",
-    # Spillere (bekreftede Stabæk-spillere – fungerer som identifikator)
+    "stabaek tröja", "stabaek trøje", "stabaek voetbalshirt",
+    "stabaek camiseta", "stabaek maglia",
+    "stabaek fotbal", "stabaek fußball", "stabaek soccer",
+    # ── Spillere (bekreftede Stabæk-spillere) ───────────────────────
     "allanzinho", "allanzinho stabæk", "allanzinho shirt",
-    "bakircioglu", "bakircioglu stabaek",
-    "nannskog", "nannskog stabaek",
+    "bakircioglu", "bakircioglu stabaek", "kennedy bakircioglu",
+    "nannskog", "nannskog stabaek", "martin nannskog",
     "veigar", "veigar gunnarsson", "veigar páll",
-    "kjønsberg", "kjoensberg",
+    "kjønsberg", "kjoensberg", "rune kjønsberg",
     "belsvik", "pål belsvik",
-    "lambech", "lambech stabaek",          # bekreftet via Grailed-kjøp
+    "lambech", "lambech stabaek", "lambech 10",
     "christer george",
-    # Sponsorer (kombinert med stabæk for trygghet)
+    "stabaek brage tobiassen",  # andre spillere bekreftet
+    "stabaek wilhelmsson",
+    "stabaek sigurdsson",
+    # ── Sponsorer (alltid kombinert med Stabæk) ─────────────────────
     "stabæk kärcher", "stabaek karcher", "stabaek kärcher",
-    "stabæk k-bank", "stabaek kbank",
-    # Merker
-    "stabaek diadora", "stabaek umbro", "stabaek adidas",
-    "stabæk diadora", "stabæk umbro",
-    # Vintage/grønn-arm-spesifikke
-    "stabaek 1998", "stabaek 1999", "stabaek 2000",
-    "stabaek vintage", "stabæk retro", "stabaek 90s",
-    "stabaek green sleeve", "stabaek green arm",
-    "stabæk grønne ermer", "stabæk grønn arm",
-    "stabaek teal", "stabaek turquoise", "stabaek long sleeve",
-    # Generelt vintage norsk fotball (ingen Stabæk i navnet – filter rydder)
+    "stabæk k-bank", "stabaek kbank", "stabaek k bank",
+    # ── Merker ──────────────────────────────────────────────────────
+    "stabaek diadora", "stabaek umbro", "stabaek adidas", "stabaek kelme",
+    "stabæk diadora", "stabæk umbro", "stabæk adidas",
+    # ── År (vintage-perioden + spesielle) ───────────────────────────
+    "stabaek 1990", "stabaek 1991", "stabaek 1992", "stabaek 1993",
+    "stabaek 1994", "stabaek 1995", "stabaek 1996", "stabaek 1997",
+    "stabaek 1998", "stabaek 1999",
+    "stabaek 2000", "stabaek 2001", "stabaek 2002", "stabaek 2003", "stabaek 2004",
+    # ── Vintage/retro/stil ──────────────────────────────────────────
+    "stabaek vintage", "stabæk vintage", "stabaek retro", "stabæk retro",
+    "stabaek 90s", "stabaek 1990s", "stabæk 90-tall", "stabæk gammel",
+    "stabæk original",
+    # ── Grønn arm / teal-spesifikke (på flere språk) ────────────────
+    "stabaek green sleeve", "stabaek green arm", "stabaek teal sleeve",
+    "stabæk grønne ermer", "stabæk grønn arm", "stabæk grønnerm",
+    "stabaek turquoise sleeve", "stabaek teal", "stabaek long sleeve",
+    "stabaek langermet", "stabæk langermet drakt",
+    # ── Generelt vintage norsk fotball ──────────────────────────────
     "norway diadora football", "norway vintage diadora",
     "norway 90s football green", "norwegian football green sleeve",
-    "norway football shirt teal",
-    # Matchworn/signert
+    "norway football shirt teal", "norwegian vintage soccer jersey",
+    "norsk fotballdrakt 90-tall", "norsk vintage drakt",
+    # ── Matchworn/signert/spillerdrakt ──────────────────────────────
     "stabaek matchworn", "stabæk match worn", "stabæk signert",
-    "stabaek player issue",
+    "stabaek player issue", "stabaek spillerdrakt", "stabaek kampbrukt",
+    "stabaek utøverbrukt", "stabaek signed",
+    # ── Auksjon / selges ────────────────────────────────────────────
+    "stabaek drakt selges", "stabaek shirt for sale", "stabaek auction",
+    "stabæk drakt auksjon", "stabaek samling",
 ]
 
 
@@ -114,6 +139,7 @@ def main():
     sources = [
         ("finn",        FinnScraper().search,             3.0),
         ("ebay",        EbayScraper().search,             2.5),
+        ("tise",        TiseScraper().search,             4.0),   # Playwright = treg
         ("vinted",      VintedScraper().search,           2.5),
         ("forza",       ForzaScraper().search,            1.5),
         ("cfs",         ClassicFCScraper().search,        2.0),
@@ -129,6 +155,9 @@ def main():
         ("marktplaats", MarktplaatsScraper().search,      2.0),
         ("grailed",     GrailedScraper().search,          2.0),
         ("cultkits",    CultKitsScraper().search,         2.0),
+        ("classickits", ClassicKitsNoScraper().search,    1.5),
+        ("532",         S532Scraper().search,             1.5),
+        ("websearch",   WebSearchScraper().search,        3.0),
     ]
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",
@@ -180,10 +209,32 @@ def main():
                 skipped_old += 1
                 continue
 
+            # Bildeanalyse på Stabæk-drakter eller spiller-titler (samme
+            # som monitor.py) – beriker beskrivelsen hvis grønt erme.
+            _STAB = {"stabæk","stabaek","stabek","stabak","stabbæk"}
+            _JERS = {"drakt","trøye","jersey","shirt","trikot"}
+            _PLYR = {"allanzinho","bakircioglu","nannskog","veigar",
+                     "kjønsberg","kjoensberg","belsvik","lambech","christer george"}
+            _tlc = ad.get("title","").lower().replace("\xe6","ae")
+            if ad.get("image_url") and (
+                (any(t in _tlc for t in _STAB) and any(w in _tlc for w in _JERS))
+                or any(p in _tlc for p in _PLYR)
+            ):
+                if has_green_sleeve(ad["image_url"]):
+                    desc = ad.get("description","").strip()
+                    ad["description"] = (desc + " | grønne ermer (bildeanalyse)").strip(" |")
+
             keep, score, reason = evaluate(ad, fc)
             if not keep:
                 skipped_filt += 1
                 continue
+
+            # Obligatorisk verifisering av 🟢 GRØNNE ERMER
+            if "GRØNNE ERMER" in reason and ad.get("image_url"):
+                if not has_green_sleeve(ad["image_url"]):
+                    reason = ("tekst sa grønn, bilde sier nei | "
+                              + reason.replace("🟢 GRØNNE ERMER | ","").replace("🟢 GRØNNE ERMER","").strip(" |"))
+                    score = max(1, score - 15)
 
             tg.send_ad(ad, score=score, match_reason=reason)
             hits_by_source[src] += 1
