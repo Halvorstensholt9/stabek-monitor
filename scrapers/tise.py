@@ -23,67 +23,86 @@ _BASE   = "https://tise.com"
 _SEARCH = f"{_BASE}/search/tise"
 _ITEM_RE = re.compile(r"/t/([A-Za-z0-9_-]{6,})")
 
-# Modulen holder én singleton-browser for hele prosessens levetid.
-_browser_lock = threading.Lock()
-_playwright   = None
-_browser      = None
-_context      = None
+# Playwright sync_api krever at browser brukes i SAMME tråd den ble laget i.
+# Bruker derfor threading.local for én browser per tråd. Hver thread i
+# ThreadPoolExecutor får sin egen Chromium (litt mer minne, men funker
+# pålitelig). Når tråden dør, ryddes _local-staten via _all_local.
+_local         = threading.local()
+_all_locals    = []           # for opprydning ved prosess-avslutning
+_locals_lock   = threading.Lock()
 
 
 def _ensure_browser():
-    """Lazy-init av Playwright + headless Chromium. Idempotent og trådsikker."""
-    global _playwright, _browser, _context
-    if _context is not None:
-        return _context
-    with _browser_lock:
-        if _context is not None:
-            return _context
+    """Lazy-init av Playwright + headless Chromium per tråd."""
+    ctx = getattr(_local, "context", None)
+    if ctx is not None:
+        # Sjekk at den fortsatt virker (browser kan ha krasjet)
         try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            logger.error("Tise: Playwright ikke installert "
-                         "(pip install playwright && playwright install chromium)")
-            return None
+            ctx.pages   # lett tilgangs-test
+            return ctx
+        except Exception:
+            _close_local()
+
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        logger.error("Tise: Playwright ikke installert "
+                     "(pip install playwright && playwright install chromium)")
+        return None
+    try:
+        pw = sync_playwright().start()
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context(
+            user_agent=("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+                        "Version/17.0 Safari/605.1.15"),
+            locale="nb-NO",
+            viewport={"width": 1280, "height": 800},
+        )
+        page = ctx.new_page()
+        page.goto(f"{_BASE}/", wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_timeout(2_500)
+        _dismiss_cookie_modal(page)
+        page.close()
+
+        _local.playwright = pw
+        _local.browser    = browser
+        _local.context    = ctx
+        with _locals_lock:
+            _all_locals.append(_local)
+        logger.info("Tise: Playwright + Chromium klar (per-tråd, WAF-cookie hentet)")
+        return ctx
+    except Exception as exc:
+        logger.error("Tise: kunne ikke starte browser: %s", exc)
+        _close_local()
+        return None
+
+
+def _close_local():
+    for attr in ("context", "browser", "playwright"):
+        obj = getattr(_local, attr, None)
+        if obj is None: continue
         try:
-            _playwright = sync_playwright().start()
-            _browser = _playwright.chromium.launch(headless=True)
-            _context = _browser.new_context(
-                user_agent=("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
-                            "Version/17.0 Safari/605.1.15"),
-                locale="nb-NO",
-                viewport={"width": 1280, "height": 800},
-            )
-            # Førstegangs-besøk for å løse WAF-utfordring og hente cookies
-            page = _context.new_page()
-            page.goto(f"{_BASE}/", wait_until="domcontentloaded", timeout=30_000)
-            page.wait_for_timeout(2_500)
-            # Lukk cookie-modal (Accept) – ellers blokkerer den klikk på søk
-            _dismiss_cookie_modal(page)
-            page.close()
-            logger.info("Tise: Playwright + Chromium klar (WAF-cookie hentet)")
-        except Exception as exc:
-            logger.error("Tise: kunne ikke starte browser: %s", exc)
-            _close_browser()
-            return None
-        return _context
+            if attr == "playwright": obj.stop()
+            else: obj.close()
+        except Exception: pass
+        try: delattr(_local, attr)
+        except AttributeError: pass
 
 
-def _close_browser():
-    global _playwright, _browser, _context
-    try:
-        if _context: _context.close()
-    except Exception: pass
-    try:
-        if _browser: _browser.close()
-    except Exception: pass
-    try:
-        if _playwright: _playwright.stop()
-    except Exception: pass
-    _context = _browser = _playwright = None
+def _close_all():
+    with _locals_lock:
+        for lc in _all_locals:
+            for attr in ("context", "browser", "playwright"):
+                obj = getattr(lc, attr, None)
+                if obj is None: continue
+                try:
+                    if attr == "playwright": obj.stop()
+                    else: obj.close()
+                except Exception: pass
 
 
-atexit.register(_close_browser)
+atexit.register(_close_all)
 
 
 def _dismiss_cookie_modal(page):
