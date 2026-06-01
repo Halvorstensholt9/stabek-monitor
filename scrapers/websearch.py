@@ -91,6 +91,24 @@ _BLOCKED_SUBSTRINGS = {
     "footystats", "onefootball", "worldfootball", "fandom.com",
     "footballwiki", "wikipedia", "sportsreference",
     "stb.guru",   # Stabæk fan-blogg, ikke salg
+    # Flere stats-sider funnet i siste skann
+    "mondefootball", "weltfussball", "wildstat", "whoscored",
+    "soccer24", "footlive", "forebet", "fichajes", "wikidata",
+    "leagueofgraphs", "leagueoflegends", "deviantart",
+    "stabakdata", "stabecksales", "thestabeckgroup",
+    "youthscout1ng", "substack",
+    # Reise- og naturvern (tilfeldige stedsnavn-treff)
+    "tripadvisor", "trip.com", "mapcarta", "nationalzoo",
+    "smconservation", "le.ac.uk", "zoominfo",
+    # Nasjonal infrastruktur og kommune
+    "banenor", "baerum.kommune", "ruv.is", "kristiansundbk",
+    # Aktørsider / personnavn
+    "jaredstabach", "belsvikelektro", "roislandco",
+    "listafirme", "stabech.ro",
+    # Svenske presse
+    "hant.se", "familjeliv", "aftonbladet",
+    # Norske artikler / blogger
+    "wikisida.no", "trikotfc",
     # Norsk presse
     "budstikka", "altomstabek", "kreativtforum", "sportsbibelen",
     "nettavisen", "vg.no", "dagbladet", "nrk.no", "aftenposten",

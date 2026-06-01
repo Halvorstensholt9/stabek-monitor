@@ -97,11 +97,12 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         # Samlerobjekter
         "autografkort", "autograf-kort", "samlekort", "fotballkort",
         "autograf",  # «div. Stabæk autografer» osv.
-        # Programmer / publikasjoner / billetter / bøker
+        # Programmer / publikasjoner / billetter / bøker / postkort
         "programblad", "kampprogram", "program ", "programme",
         "billett", "ticket", "kortstokk", "stickers",
         "bok ", "bok.", "historikk", "vinyl", "maxi 12", " 12\"",
         " 7\"", " lp", "ep ", "cd ", "dvd ", " dvd",
+        "postcard", "postkort", "rppc", "ansichtskarte",
         # Tilfeldige navne-kollisjoner
         "license plate", "vanity plate", "stay back",
         "stabekk skole", "stabekk school",
