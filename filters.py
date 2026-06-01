@@ -58,10 +58,10 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         return False, 0, "mangler stabæk"
 
     # ── 1a. «stabak»-only er for løst – krever fotball-kontekst ─────────
-    # «stabak» (uten æ) matcher DJ Stabak (vinyl), «STAY BACK»-skilt,
-    # tilfeldige etternavn osv. Hvis ENESTE match er «stabak»/«stabek»
-    # (uten æ), krev at en fotball-relatert term er til stede.
-    _has_strict_stab = bool(re.search(r"\bstab[æbk]+", text))   # stabæk eller stabbæk
+    # «stabak» (uten æ OG uten e) matcher DJ Stabak (vinyl), «STAY BACK»-
+    # skilt, tilfeldige etternavn osv. «stabæk», «stabbæk» og «stabaek»
+    # (med e) er unike nok alene – slipper gjennom uten ekstra krav.
+    _has_strict_stab = bool(re.search(r"\bstab(?:æk|bæk|aek)\b", text))
     if not _has_strict_stab and _has_required and not _has_player:
         _FOOTBALL_CTX = {
             "drakt", "trøye", "jersey", "shirt", "trikot", "tröja", "trøje",
@@ -101,11 +101,9 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         # Tilfeldige navne-kollisjoner
         "license plate", "vanity plate", "stay back",
         "stabekk skole", "stabekk school",
-        # Skjerf på flere språk
-        "fanschal", "schal", "sciarpa", "halsdoek",
-        "elsker stabæk",  # supporter-merch
-        # Hodeplagg / hals
-        "skjerf", " lue", "lue ", "caps ", " caps", "scarf", "halstørkle",
+        # (skjerf på flere språk fjernet – du vil ha dem)
+        # Hodeplagg (skjerf er ønsket – ikke blokker)
+        " lue", "lue ", "caps ", " caps",
         # Plakater / bilder
         "plakat", "poster", "bilde ",
         # Andre klesplagg som IKKE er drakt
