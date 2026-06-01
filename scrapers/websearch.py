@@ -74,6 +74,32 @@ _BLOCKED_DOMAINS = {
     "footballia.net", "fotbollskanalen.se", "ronaldo7.net",
     "weltfussball.de", "footballorgin.com", "footballfanbase.com",
     "thesportsdb.com",
+    "snl.no", "lokalhistoriewiki.no", "norskfodbold.dk",
+    "fotballmuseet.no", "stat.no",
+    "footballhistory.org",
+}
+
+# Substrenger som blokkeres uansett TLD (transfermarkt.com/.co.uk/.us osv.)
+_BLOCKED_SUBSTRINGS = {
+    # Statistikk / oppslagsverk
+    "transfermarkt", "wikiwand", "playmakerstats", "tribuna",
+    "familysearch", "ancientfaces", "researchgate", "forebears",
+    "stcroixlandmarks", "twitch", "aliexpress", "soccerway",
+    "statscrew", "fotmob", "fbref", "uefa", "fifa.com",
+    "sofascore", "flashscore", "besoccer", "globalsports",
+    "national-football-teams", "fotball-databaser",
+    "footystats", "onefootball", "worldfootball", "fandom.com",
+    "footballwiki", "wikipedia", "sportsreference",
+    "stb.guru",   # Stabæk fan-blogg, ikke salg
+    # Norsk presse
+    "budstikka", "altomstabek", "kreativtforum", "sportsbibelen",
+    "nettavisen", "vg.no", "dagbladet", "nrk.no", "aftenposten",
+    "tv2.no", "fotball.no",
+    # Flere stats / genealogi
+    "fctables", "futbol24", "scores24", "statarea",
+    "ancestry", "myheritage", "geni.com",
+    # Moderne fan-butikker (Stabæk siden 2018+)
+    "unisportstore", "antonsport", "stabakbutikken", "stabak.no",
 }
 
 
@@ -113,13 +139,19 @@ class WebSearchScraper:
             return None
 
         try:
-            host = urlparse(href).netloc.lower().lstrip("www.")
+            host = urlparse(href).netloc.lower()
+            if host.startswith("www."):
+                host = host[4:]
         except Exception:
             return None
 
-        # Hopp over egne domener (dobbel-dekning) og blokkerte
+        # Hopp over egne domener og blokkerte (exact match + suffix)
         for blocked in _OWN_DOMAINS | _BLOCKED_DOMAINS:
             if host == blocked or host.endswith("." + blocked):
+                return None
+        # Blokkér substreng-baserte støy-domener (alle TLDs)
+        for sub in _BLOCKED_SUBSTRINGS:
+            if sub in host:
                 return None
 
         if href in seen_urls:
@@ -130,10 +162,22 @@ class WebSearchScraper:
         if not title:
             return None
 
+        # KRITISK: websøk gir ofte URLer hvor SNIPPETEN inneholder Stabæk
+        # men selve siden er om noe helt annet (kommentar, intervju, bilde-
+        # caption osv.). Krev derfor Stabæk/spillernavn i TITTELEN, ellers
+        # blir det 80+ falske treff.
+        _STAB_PAT = re.compile(r"stab[æabek]+", re.I)
+        _PLAYER_PAT = re.compile(
+            r"(allanzinho|bakircioglu|nannskog|veigar|kjønsberg|kjoensberg"
+            r"|belsvik|lambech|christer george)",
+            re.I,
+        )
+        if not _STAB_PAT.search(title) and not _PLAYER_PAT.search(title):
+            return None
+
         snippet_el = result.select_one(".result__snippet, .result-snippet")
         snippet = snippet_el.get_text(" ", strip=True) if snippet_el else ""
 
-        # Unik ID basert på URL
         ad_id = "web_" + re.sub(r"[^a-z0-9]+", "_", href.lower())[:80]
 
         return {
