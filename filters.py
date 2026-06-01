@@ -61,7 +61,11 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     # «stabak» (uten æ OG uten e) matcher DJ Stabak (vinyl), «STAY BACK»-
     # skilt, tilfeldige etternavn osv. «stabæk», «stabbæk» og «stabaek»
     # (med e) er unike nok alene – slipper gjennom uten ekstra krav.
-    _has_strict_stab = bool(re.search(r"\bstab(?:æk|bæk|aek)\b", text))
+    # Streng-match: «stabæk», «stabbæk», «stabaek», «stabækk», «stabekk»,
+    # «stabæck», «stabeck» – alle med æ ELLER e ELLER dobbelt k = unike nok.
+    _has_strict_stab = bool(re.search(
+        r"\bstab(?:æk|bæk|aek|ækk|ekk|æck|eck|ech)\b", text
+    ))
     if not _has_strict_stab and _has_required and not _has_player:
         _FOOTBALL_CTX = {
             "drakt", "trøye", "jersey", "shirt", "trikot", "tröja", "trøje",

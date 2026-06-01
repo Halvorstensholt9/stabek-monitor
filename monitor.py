@@ -114,7 +114,8 @@ def _run_source(
             #
             # Også triggert ved bekreftet Stabæk-spillernavn i tittel,
             # selv om «Stabæk» ikke står der (Lambech, Allanzinho osv.).
-            _STABÆK_TITLE = {"stabæk", "stabaek", "stabek", "stabak", "stabbæk"}
+            _STABÆK_TITLE = {"stabæk", "stabaek", "stabek", "stabak", "stabbæk",
+                             "stabækk", "stabekk", "stabæck", "stabeck"}
             _JERSEY_WORD  = {"drakt", "trøye", "jersey", "shirt", "trikot"}
             _PLAYER_TITLE = {"allanzinho", "bakircioglu", "nannskog", "veigar",
                              "kjønsberg", "kjoensberg", "belsvik", "lambech",

@@ -54,9 +54,11 @@ logger = logging.getLogger("ultra")
 # ── Vid søkeordliste – brukes på ALLE kilder ─────────────────────────────────
 
 QUERIES = [
-    # ── Klubbnavn (alle kjente skrivemåter) ─────────────────────────
+    # ── Klubbnavn (alle kjente skrivemåter inkl. dobbelt-k og utenlandske) ──
     "stabæk", "stabaek", "stabek", "stabak", "stabbæk",
+    "stabækk", "stabekk", "stabæck", "stabeck", "stabech",
     "stabaek fotball", "stabaek if", "stabæk if", "stabæk fotball",
+    "stabækk fotball", "stabekk fotball", "stabeck fotball",
     "stabæk football", "stabaek football", "stabaek FC",
     "stabaek bærum", "stabaek bærum if",
     # ── Drakt-typer på 5+ språk ─────────────────────────────────────
@@ -211,7 +213,8 @@ def main():
 
             # Bildeanalyse på Stabæk-drakter eller spiller-titler (samme
             # som monitor.py) – beriker beskrivelsen hvis grønt erme.
-            _STAB = {"stabæk","stabaek","stabek","stabak","stabbæk"}
+            _STAB = {"stabæk","stabaek","stabek","stabak","stabbæk",
+                     "stabækk","stabekk","stabæck","stabeck"}
             _JERS = {"drakt","trøye","jersey","shirt","trikot"}
             _PLYR = {"allanzinho","bakircioglu","nannskog","veigar",
                      "kjønsberg","kjoensberg","belsvik","lambech","christer george"}
