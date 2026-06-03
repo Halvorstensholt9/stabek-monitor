@@ -10,6 +10,7 @@ Bruk: python monitor.py [--test]
 import argparse
 import logging
 import os
+import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -64,6 +65,39 @@ def setup_logging(cfg: dict) -> None:
             logging.StreamHandler(sys.stdout),
         ],
     )
+
+
+# ── Auto-update ──────────────────────────────────────────────────────────
+
+def check_for_updates(tg=None) -> None:
+    """Sjekker om det er nye commits på GitHub. Restarter boten hvis ja."""
+    logger = logging.getLogger("autoupdate")
+    try:
+        subprocess.run(["git", "fetch", "--quiet"], timeout=15, check=True,
+                       capture_output=True)
+        local  = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                         text=True).strip()
+        remote = subprocess.check_output(["git", "rev-parse", "@{u}"],
+                                         text=True).strip()
+    except Exception as exc:
+        logger.debug("Auto-update sjekk feilet: %s", exc)
+        return
+
+    if local == remote:
+        return
+
+    logger.info("Ny versjon funnet – puller og restarter…")
+    try:
+        subprocess.run(["git", "pull", "--quiet"], timeout=30, check=True,
+                       capture_output=True)
+    except Exception as exc:
+        logger.error("git pull feilet: %s", exc)
+        return
+
+    if tg:
+        tg.send_text("🔄 <b>Boten oppdaterer seg selv</b> – tilbake om noen sekunder…")
+
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 # ── Per-source worker (kjøres i tråd) ────────────────────────────────────
@@ -320,6 +354,7 @@ def main():
 
     schedule.every(interval).minutes.do(run_check, cfg=cfg, db=db, tg=tg)
     schedule.every(5).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+    schedule.every(5).minutes.do(check_for_updates, tg=tg)
     logger.info("Trykk Ctrl+C for å stoppe.")
     try:
         while True:
