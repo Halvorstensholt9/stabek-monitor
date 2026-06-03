@@ -130,7 +130,7 @@ def run_draktgata_fastcheck(cfg: dict, db: Database, tg: Telegram) -> None:
     Varsler KUN om Stabæk-drakter som dukker opp – med en gang.
     """
     logger       = logging.getLogger("draktgata.fast")
-    stabæk_terms = {"stabæk", "stabaek"}
+    stabæk_terms = {"stabak", "stabaek"}  # etter .replace("æ", "a")
     try:
         alle = _draktgata_scraper.get_all_products()
     except Exception as exc:
@@ -301,12 +301,12 @@ def main():
     run_check(cfg, db, tg)
 
     schedule.every(interval).minutes.do(run_check, cfg=cfg, db=db, tg=tg)
-    schedule.every(30).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+    schedule.every(10).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
     logger.info("Trykk Ctrl+C for å stoppe.")
     try:
         while True:
             schedule.run_pending()
-            time.sleep(10)
+            time.sleep(5)
     except KeyboardInterrupt:
         logger.info("Monitor stoppet.")
         tg.send_text("🔴 Monitor stoppet.")
