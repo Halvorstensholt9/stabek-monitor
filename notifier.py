@@ -33,12 +33,33 @@ class Telegram:
 
     def send_draktgata_alarm(self, ad: Dict) -> None:
         """3 separate meldinger = 3 buzz. Brukes kun for Draktgata-funn."""
-        title = ad.get("title", "")
-        price = ad.get("price", "")
-        url   = ad.get("url", "")
+        title     = ad.get("title", "")
+        price     = ad.get("price", "")
+        url       = ad.get("url", "")
+        image_url = ad.get("image_url")
 
+        # Melding 1 – alarm
         self.send_text("🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨\n<b>STABÆK PÅ DRAKTGATA!!!</b>\n🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨")
-        self.send_ad(ad, score=3, match_reason="🚨 STABÆK på Draktgata.no!")
+
+        # Melding 2 – bilde + info (prøv bilde først, aldri hopp over)
+        caption = (
+            f"🟢🟢🟢 <b>STABÆK PÅ DRAKTGATA</b> 🟢🟢🟢\n"
+            f"<b>{title}</b>\n"
+            f"💰 <b>{price}</b>\n"
+            f'<a href="{url}">👉 GÅ TIL DRAKTGATA NÅ</a>'
+        )
+        sent_photo = False
+        if image_url:
+            sent_photo = self._post("sendPhoto", {
+                "chat_id": self.chat_id,
+                "photo":   image_url,
+                "caption": caption,
+                "parse_mode": "HTML",
+            })
+        if not sent_photo:
+            self.send_text(caption)
+
+        # Melding 3 – kjøpsoppfordring
         self.send_text(
             f"⬆️ <b>KJØP NÅ – de selger raskt!</b>\n"
             f"<b>{title}</b>  💰 {price}\n"

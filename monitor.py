@@ -238,8 +238,10 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Stabæk Drakt Monitor")
-    parser.add_argument("--test",   action="store_true",
+    parser.add_argument("--test",       action="store_true",
                         help="Kjør én sjekk og avslutt")
+    parser.add_argument("--test-alarm", action="store_true",
+                        help="Send en falsk Draktgata-alarm for å teste varslingen")
     parser.add_argument("--config", default="config.yaml")
     args = parser.parse_args()
 
@@ -270,6 +272,21 @@ def main():
     ]
     source_count = sum(1 for k in source_keys if cfg["search"].get(k))
     kw_count     = sum(len(cfg["search"].get(k, [])) for k in source_keys)
+
+    if args.test_alarm:
+        logger.info("── TEST-ALARM ──")
+        mock_ad = {
+            "id":          "draktgata_test-stabak-1997",
+            "source":      "draktgata.no",
+            "title":       "Stabæk 1997 Diadora – grønne ermer (TESTMELDING)",
+            "price":       "1 200 kr",
+            "url":         "https://www.draktgata.no",
+            "image_url":   "https://www.draktgata.no/cdn/shop/files/draktgata-logo.png",
+            "description": "Dette er en test av Draktgata-alarmen.",
+        }
+        tg.send_draktgata_alarm(mock_ad)
+        logger.info("Test-alarm sendt!")
+        return
 
     if args.test:
         logger.info("── TEST-MODUS ──")
