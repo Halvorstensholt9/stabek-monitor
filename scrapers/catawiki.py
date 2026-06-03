@@ -43,12 +43,13 @@ class CatawikiScraper:
         self.session.headers.update(_HEADERS)
 
     def search(self, keyword: str) -> List[Dict]:
-        # Prøv interne API-et først, deretter HTML
-        ads = self._try_api(keyword) or self._try_html(keyword)
+        ads, ok = self._try_api(keyword)
+        if not ok:
+            ads = self._try_html(keyword)
         logger.info("Catawiki '%s': %d treff", keyword, len(ads))
         return ads
 
-    def _try_api(self, keyword: str) -> List[Dict]:
+    def _try_api(self, keyword: str) -> tuple:
         """Catawikis interne lot-søk API."""
         params = {
             "query":    keyword,
@@ -62,17 +63,16 @@ class CatawikiScraper:
         try:
             resp = self.session.get(_API_URL, params=params, headers=headers, timeout=20)
             if resp.status_code != 200:
-                return []
+                return [], False
             data = resp.json()
         except Exception:
-            return []
+            return [], False
 
         lots = data.get("lots") or data.get("data") or data.get("results") or []
         ads  = [a for a in (_lot_to_ad(lot) for lot in lots) if a]
 
-        # Filtrer på søkeord
         kw_parts = keyword.lower().replace("æ", "a").split()
-        return [ad for ad in ads if any(p in ad["title"].lower().replace("æ", "a") for p in kw_parts)]
+        return [ad for ad in ads if any(p in ad["title"].lower().replace("æ", "a") for p in kw_parts)], True
 
     def _try_html(self, keyword: str) -> List[Dict]:
         url    = f"{_BASE}/en/l/search"
