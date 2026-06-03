@@ -31,6 +31,20 @@ class Telegram:
             "disable_web_page_preview": False,
         })
 
+    def send_draktgata_alarm(self, ad: Dict) -> None:
+        """3 separate meldinger = 3 buzz. Brukes kun for Draktgata-funn."""
+        title = ad.get("title", "")
+        price = ad.get("price", "")
+        url   = ad.get("url", "")
+
+        self.send_text("🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨\n<b>STABÆK PÅ DRAKTGATA!!!</b>\n🚨🟢🚨🟢🚨🟢🚨🟢🚨🟢🚨")
+        self.send_ad(ad, score=3, match_reason="🚨 STABÆK på Draktgata.no!")
+        self.send_text(
+            f"⬆️ <b>KJØP NÅ – de selger raskt!</b>\n"
+            f"<b>{title}</b>  💰 {price}\n"
+            f'<a href="{url}">👉 GÅ TIL DRAKTGATA NÅ</a>'
+        )
+
     def send_ad(self, ad: Dict, score: int = 0, match_reason: str = "") -> bool:
         source_label = {"finn.no": "Finn.no", "ebay.co.uk": "eBay UK",
                         "ebay.de": "eBay DE"}.get(ad.get("source", ""), ad.get("source", ""))

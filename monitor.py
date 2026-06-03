@@ -151,7 +151,7 @@ def run_draktgata_fastcheck(cfg: dict, db: Database, tg: Telegram) -> None:
             continue
 
         logger.info("⭐ STABÆK PÅ DRAKTGATA: %s | %s", ad["title"], ad["price"])
-        tg.send_ad(ad, score=3, match_reason="🚨 STABÆK på Draktgata.no!")
+        tg.send_draktgata_alarm(ad)
 
 
 # ── Hoved-sjekk ───────────────────────────────────────────────────────────
@@ -302,12 +302,12 @@ def main():
     run_check(cfg, db, tg)
 
     schedule.every(interval).minutes.do(run_check, cfg=cfg, db=db, tg=tg)
-    schedule.every(10).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+    schedule.every(5).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
     logger.info("Trykk Ctrl+C for å stoppe.")
     try:
         while True:
             schedule.run_pending()
-            time.sleep(5)
+            time.sleep(2)
     except KeyboardInterrupt:
         logger.info("Monitor stoppet.")
         tg.send_text("🔴 Monitor stoppet.")
