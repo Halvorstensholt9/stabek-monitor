@@ -266,6 +266,7 @@ def main():
         "forza_keywords", "cfs_keywords", "tradera_keywords", "blocket_keywords",
         "dba_keywords", "depop_keywords", "vfs_keywords",
         "reddit_keywords", "catawiki_keywords", "tfi_keywords",
+        "draktgata_keywords", "marktplaats_keywords", "grailed_keywords", "cultkits_keywords",
     ]
     source_count = sum(1 for k in source_keys if cfg["search"].get(k))
     kw_count     = sum(len(cfg["search"].get(k, [])) for k in source_keys)
