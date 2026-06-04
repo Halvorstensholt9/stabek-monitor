@@ -136,6 +136,13 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
             and not any(w in _title_lc_g for w in _JERSEY_TITLE_G)):
         return False, 0, "ikke-drakt merch"
 
+    # ── 1d. HARD-BLOKK: alltid-moderne markører ─────────────────────────
+    # Macron er Stabæks leverandør fra 2018+ – ALDRI grailen, uansett.
+    # «Template» er kit-designtegninger, ikke ekte salg.
+    _ALWAYS_MODERN = {"macron", "macron's", "template", "concept kit"}
+    if any(w in _title_lc_g for w in _ALWAYS_MODERN):
+        return False, 0, "alltid-moderne (macron/template)"
+
     # ── 2. Sjekk grønne ermer FØR alt annet ────────────────────────────
     _GREEN        = ("grønn", "grønne", "green", "grön", "grøn",
                      "groene", "groen")                          # + nederlandsk
