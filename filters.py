@@ -138,10 +138,12 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
 
     # ── 1d. HARD-BLOKK: alltid-moderne markører ─────────────────────────
     # Macron er Stabæks leverandør fra 2018+ – ALDRI grailen, uansett.
-    # «Template» er kit-designtegninger, ikke ekte salg.
-    _ALWAYS_MODERN = {"macron", "macron's", "template", "concept kit"}
+    # (NB: «template» fjernet 2026-06-04 – det er en VINTAGE-betegnelse
+    # for Diadora/Umbro-design som flere klubber brukte; Halvor kjøpte
+    # nettopp en ekte Stabæk 1997 home template.)
+    _ALWAYS_MODERN = {"macron", "macron's", "concept kit"}
     if any(w in _title_lc_g for w in _ALWAYS_MODERN):
-        return False, 0, "alltid-moderne (macron/template)"
+        return False, 0, "alltid-moderne (macron)"
 
     # ── 2. Sjekk grønne ermer FØR alt annet ────────────────────────────
     _GREEN        = ("grønn", "grønne", "green", "grön", "grøn",
