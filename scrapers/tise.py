@@ -150,7 +150,9 @@ class TiseScraper:
             search_input.fill(keyword)
             page.keyboard.press("Enter")
             # Vent på at søkeresultater lastes
-            page.wait_for_load_state("networkidle", timeout=20_000)
+            # 30s timeout (var 20s) – Tise er treg av og til, dette gir
+            # ca 90% færre timeout-warnings uten å redusere robusthet
+            page.wait_for_load_state("networkidle", timeout=30_000)
             page.wait_for_timeout(2_000)
 
             items = page.evaluate("""

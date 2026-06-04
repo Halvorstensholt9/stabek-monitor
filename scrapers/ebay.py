@@ -197,6 +197,11 @@ class EbayScraper:
         session = self.sessions.get(site_key, self.html_session)
         try:
             resp = session.get(url, timeout=20)
+            # Hvis 403 (Cloudflare-blokk), reset sesjonen og prøv én gang til
+            if resp.status_code == 403:
+                self._refresh_session(site_key)
+                session = self.sessions.get(site_key, self.html_session)
+                resp = session.get(url, timeout=20)
             resp.raise_for_status()
         except Exception as exc:
             logger.warning("eBay HTML %s feil for '%s': %s", site_key, keyword, exc)
@@ -206,6 +211,19 @@ class EbayScraper:
             logger.debug("eBay %s ga splashui-utfordring", site_key)
             return []
         return self._parse_html(resp.text, site_key)
+
+    def _refresh_session(self, site_key: str) -> None:
+        """Re-initialiser sesjonen for et marked – brukes ved 403-blokk."""
+        _, needs_home = _MARKETS.get(site_key, (None, False))
+        s = cf.Session(impersonate="safari17_0")
+        s.headers.update(_HEADERS_HTML)
+        if needs_home:
+            try:
+                s.get(f"https://www.{site_key}/", timeout=15)
+            except Exception:
+                pass
+        self.sessions[site_key] = s
+        logger.debug("eBay %s sesjon re-initialisert (var 403-blokket)", site_key)
 
     def _parse_html(self, html: str, source: str) -> List[Dict]:
         # eBay endret HTML-struktur i 2025: li.s-item → li.s-card
