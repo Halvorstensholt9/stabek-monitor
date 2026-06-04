@@ -11,8 +11,15 @@ class Database:
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path)
+        # timeout=30 = vent inntil 30 sek hvis databasen er låst (mange
+        # parallelle skrapere kan konkurrere om skriving). Erstatter
+        # «database is locked»-feilene.
+        conn = sqlite3.connect(self.path, timeout=30)
         conn.row_factory = sqlite3.Row
+        # WAL-mode tillater flere lesere samtidig med én skriver,
+        # og er mye mer tolerant mot parallell tilgang enn standard.
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
         return conn
 
     def _init_db(self):
