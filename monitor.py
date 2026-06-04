@@ -249,7 +249,10 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         ("grailed",     grailed.search,      s.get("grailed_keywords",     []), 2.0),
         ("cultkits",    cultkits.search,     s.get("cultkits_keywords",    []), 2.0),
         ("classickits", classickits.search,  s.get("classickits_keywords", []), 1.5),
-        ("532",         s532.search,         s.get("s532_keywords",        []), 1.5),
+        # 532.no deaktivert 2026-06-04: products.json returnerer 401 (de
+        # har stengt offentlig API). HTML er JS-rendret = krever Playwright.
+        # Reaktiveres hvis de gjenåpner eller hvis vi senere vil bruke Playwright.
+        # ("532",         s532.search,         s.get("s532_keywords",        []), 1.5),
         ("websearch",   websearch.search,    s.get("websearch_keywords",   []), 3.0),
     ]
 

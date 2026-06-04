@@ -158,7 +158,8 @@ def main():
         ("grailed",     GrailedScraper().search,          2.0),
         ("cultkits",    CultKitsScraper().search,         2.0),
         ("classickits", ClassicKitsNoScraper().search,    1.5),
-        ("532",         S532Scraper().search,             1.5),
+        # 532.no deaktivert (API stengt 2026-06)
+        # ("532",         S532Scraper().search,             1.5),
         ("websearch",   WebSearchScraper().search,        3.0),
     ]
 
