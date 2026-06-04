@@ -352,7 +352,10 @@ def main():
     run_check(cfg, db, tg)
 
     schedule.every(interval).minutes.do(run_check, cfg=cfg, db=db, tg=tg)
-    schedule.every(30).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+    # Draktgata-fastcheck (hvert 30. sek) fjernet 2026-06-04 etter at
+    # bruker kjøpte ønsket Stabæk 1997 home template. Vanlig 3-min runde
+    # dekker Draktgata fremover.
+    # schedule.every(30).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
     logger.info("Trykk Ctrl+C for å stoppe.")
     try:
         while True:
