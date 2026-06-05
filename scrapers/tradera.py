@@ -62,7 +62,8 @@ def _parse(html: str, keyword: str) -> List[Dict]:
             # Kun behold treff som faktisk inneholder søkeordet
             kw_lower = keyword.lower().replace("æ", "a")
             title_lower = ad["title"].lower().replace("æ", "a")
-            if kw_lower.split()[0] not in title_lower:
+            kw_parts = kw_lower.split()
+            if kw_parts and kw_parts[0] not in title_lower:
                 continue
             results.append(ad)
 
