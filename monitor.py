@@ -10,6 +10,7 @@ Bruk: python monitor.py [--test]
 import argparse
 import logging
 import os
+import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -68,6 +69,39 @@ def setup_logging(cfg: dict) -> None:
             logging.StreamHandler(sys.stdout),
         ],
     )
+
+
+# ── Auto-update ──────────────────────────────────────────────────────────
+
+def check_for_updates(tg=None) -> None:
+    """Sjekker om det er nye commits på GitHub. Restarter boten hvis ja."""
+    logger = logging.getLogger("autoupdate")
+    try:
+        subprocess.run(["git", "fetch", "--quiet"], timeout=15, check=True,
+                       capture_output=True)
+        local  = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                         text=True).strip()
+        remote = subprocess.check_output(["git", "rev-parse", "@{u}"],
+                                         text=True).strip()
+    except Exception as exc:
+        logger.debug("Auto-update sjekk feilet: %s", exc)
+        return
+
+    if local == remote:
+        return
+
+    logger.info("Ny versjon funnet – puller og restarter…")
+    try:
+        subprocess.run(["git", "pull", "--quiet"], timeout=30, check=True,
+                       capture_output=True)
+    except Exception as exc:
+        logger.error("git pull feilet: %s", exc)
+        return
+
+    if tg:
+        tg.send_text("🔄 <b>Boten oppdaterer seg selv</b> – tilbake om noen sekunder…")
+
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 # ── Per-source worker (kjøres i tråd) ────────────────────────────────────
@@ -175,7 +209,7 @@ def run_draktgata_fastcheck(cfg: dict, db: Database, tg: Telegram) -> None:
     Varsler KUN om Stabæk-drakter som dukker opp – med en gang.
     """
     logger       = logging.getLogger("draktgata.fast")
-    stabæk_terms = {"stabæk", "stabaek"}
+    stabæk_terms = {"stabak", "stabaek"}  # etter .replace("æ", "a")
     try:
         alle = _draktgata_scraper.get_all_products()
     except Exception as exc:
@@ -196,7 +230,7 @@ def run_draktgata_fastcheck(cfg: dict, db: Database, tg: Telegram) -> None:
             continue
 
         logger.info("⭐ STABÆK PÅ DRAKTGATA: %s | %s", ad["title"], ad["price"])
-        tg.send_ad(ad, score=3, match_reason="🚨 STABÆK på Draktgata.no!")
+        tg.send_draktgata_alarm(ad)
 
 
 # ── Hoved-sjekk ───────────────────────────────────────────────────────────
@@ -292,8 +326,10 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Stabæk Drakt Monitor")
-    parser.add_argument("--test",   action="store_true",
+    parser.add_argument("--test",       action="store_true",
                         help="Kjør én sjekk og avslutt")
+    parser.add_argument("--test-alarm", action="store_true",
+                        help="Send en falsk Draktgata-alarm for å teste varslingen")
     parser.add_argument("--config", default="config.yaml")
     args = parser.parse_args()
 
@@ -320,9 +356,25 @@ def main():
         "forza_keywords", "cfs_keywords", "tradera_keywords", "blocket_keywords",
         "dba_keywords", "depop_keywords", "vfs_keywords",
         "reddit_keywords", "catawiki_keywords", "tfi_keywords",
+        "draktgata_keywords", "marktplaats_keywords", "grailed_keywords", "cultkits_keywords",
     ]
     source_count = sum(1 for k in source_keys if cfg["search"].get(k))
     kw_count     = sum(len(cfg["search"].get(k, [])) for k in source_keys)
+
+    if args.test_alarm:
+        logger.info("── TEST-ALARM ──")
+        mock_ad = {
+            "id":          "draktgata_test-stabak-1997",
+            "source":      "draktgata.no",
+            "title":       "Stabæk 1997 Diadora – grønne ermer (TESTMELDING)",
+            "price":       "1 200 kr",
+            "url":         "https://www.draktgata.no",
+            "image_url":   "https://www.draktgata.no/cdn/shop/files/draktgata-logo.png",
+            "description": "Dette er en test av Draktgata-alarmen.",
+        }
+        tg.send_draktgata_alarm(mock_ad)
+        logger.info("Test-alarm sendt!")
+        return
 
     if args.test:
         logger.info("── TEST-MODUS ──")
@@ -355,15 +407,17 @@ def main():
     run_check(cfg, db, tg)
 
     schedule.every(interval).minutes.do(run_check, cfg=cfg, db=db, tg=tg)
-    # Draktgata-fastcheck (hvert 30. sek) fjernet 2026-06-04 etter at
-    # bruker kjøpte ønsket Stabæk 1997 home template. Vanlig 3-min runde
-    # dekker Draktgata fremover.
-    # schedule.every(30).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+    # Draktgata-fastcheck deaktivert etter kjøp #2 (Stabæk 1997 home template).
+    # Vanlig 3-min runde dekker Draktgata fremover.
+    # schedule.every(5).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+
+    # Auto-update fra main: sjekk for nye commits hvert 5. min og restart.
+    schedule.every(5).minutes.do(check_for_updates, tg=tg)
     logger.info("Trykk Ctrl+C for å stoppe.")
     try:
         while True:
             schedule.run_pending()
-            time.sleep(10)
+            time.sleep(2)
     except KeyboardInterrupt:
         logger.info("Monitor stoppet.")
         tg.send_text("🔴 Monitor stoppet.")
