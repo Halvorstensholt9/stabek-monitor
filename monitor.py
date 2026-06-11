@@ -42,6 +42,7 @@ from scrapers.draktgata import DraktgataScraper
 from scrapers.classickits import ClassicKitsNoScraper
 from scrapers._532 import S532Scraper
 from scrapers.websearch import WebSearchScraper
+from scrapers.facebook_marketplace import FacebookMarketplaceScraper
 from scrapers.marktplaats import MarktplaatsScraper
 from scrapers.grailed import GrailedScraper
 from scrapers.cultkits import CultKitsScraper
@@ -261,6 +262,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     classickits = ClassicKitsNoScraper()
     s532        = S532Scraper()
     websearch   = WebSearchScraper()
+    facebook    = FacebookMarketplaceScraper()
 
     # (navn, søkefunksjon, nøkkelordliste, pause_sek_mellom_søk)
     sources = [
@@ -288,6 +290,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         # Reaktiveres hvis de gjenåpner eller hvis vi senere vil bruke Playwright.
         # ("532",         s532.search,         s.get("s532_keywords",        []), 1.5),
         ("websearch",   websearch.search,    s.get("websearch_keywords",   []), 3.0),
+        ("facebook",    facebook.search,     s.get("facebook_keywords",    []), 3.0),
     ]
 
     logger.info("══ Starter sjekk (%d kilder parallelt) ══", len(sources))
