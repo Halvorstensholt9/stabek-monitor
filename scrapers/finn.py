@@ -20,7 +20,10 @@ from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
-_SEARCH_URL = "https://www.finn.no/bap/forsale/search.html"
+# Finn flyttet søk fra /bap/forsale/search.html (nå 404) til
+# /recommerce/forsale/search (2026-06). Beholder gammel som fallback.
+_SEARCH_URL     = "https://www.finn.no/recommerce/forsale/search"
+_SEARCH_URL_OLD = "https://www.finn.no/bap/forsale/search.html"
 _HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -45,18 +48,15 @@ class FinnScraper:
         self.session.headers.update(_HEADERS)
 
     def search(self, keyword: str) -> List[Dict]:
-        params = {"q": keyword, "sort": "1"}  # sort=1 = nyeste først
+        params = {"q": keyword, "sort": "PUBLISHED_DESC"}  # nyeste først
         url = f"{_SEARCH_URL}?{urllib.parse.urlencode(params)}"
         logger.debug("Finn.no søker: %s", url)
 
         try:
-            resp = self.session.get(url, timeout=20)
+            resp = self.session.get(url, timeout=20, allow_redirects=True)
             resp.raise_for_status()
-        except requests.HTTPError as exc:
-            logger.warning("Finn.no HTTP-feil for '%s': %s", keyword, exc)
-            return []
-        except requests.RequestException as exc:
-            logger.error("Finn.no tilkoblingsfeil for '%s': %s", keyword, exc)
+        except Exception as exc:
+            logger.warning("Finn.no feil for '%s': %s", keyword, exc)
             return []
 
         ads = self._parse_next_data(resp.text)
