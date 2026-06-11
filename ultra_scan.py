@@ -41,9 +41,9 @@ from scrapers.marktplaats           import MarktplaatsScraper
 from scrapers.grailed               import GrailedScraper
 from scrapers.cultkits              import CultKitsScraper
 from scrapers.classickits           import ClassicKitsNoScraper
-from scrapers._532                  import S532Scraper
 from scrapers.websearch             import WebSearchScraper
 from scrapers.tise                  import TiseScraper
+from scrapers.facebook_marketplace  import FacebookMarketplaceScraper
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
@@ -111,6 +111,35 @@ QUERIES = [
     # ── Auksjon / selges ────────────────────────────────────────────
     "stabaek drakt selges", "stabaek shirt for sale", "stabaek auction",
     "stabæk drakt auksjon", "stabaek samling",
+
+    # ── STØRSTE-SØK-TILLEGG (ekstra bredde) ─────────────────────────
+    # Sponsor + drakt-kombinasjoner
+    "stabæk kärcher drakt", "stabaek karcher shirt", "stabaek kbank trøye",
+    # Farge × type-kombinasjoner (grønn-arm-jakten)
+    "stabaek hvit grønn drakt", "stabaek blå grønn", "stabaek teal hvit",
+    "stabaek green white shirt", "stabaek turquoise jersey",
+    "stabæk stripet drakt", "stabæk diadora grønn",
+    # Drakt-detaljer
+    "stabæk keeper drakt", "stabæk målvakt", "stabaek goalkeeper",
+    "stabæk barn drakt", "stabæk junior", "stabaek kids shirt",
+    "stabæk langermet vintage", "stabaek long sleeve 90s",
+    # Nye stavemåter × type
+    "stabækk drakt", "stabekk fotballdrakt", "stabæck shirt",
+    "stabeck trikot", "stabbæk drakt",
+    # Spillere × år/type (flere Stabæk-spillere fra gullperioden)
+    "stabaek gunnarsson", "stabaek páll", "stabaek hoff",
+    "stabaek bergdølmo", "stabaek finstad", "stabaek hauger",
+    "stabaek wilhelmsson drakt", "stabaek sigurdsson drakt",
+    "stabaek brage tobiassen",
+    # Engelske marked-fraser
+    "norwegian eliteserien shirt vintage", "tippeligaen shirt 1990s",
+    "norway club shirt diadora 90s", "scandinavian football shirt teal",
+    "rare norwegian football jersey green",
+    # Auksjon/samler internasjonalt
+    "stabaek matchworn jersey", "stabaek signed shirt vintage",
+    "stabaek player issue 1990s", "stabaek collectors shirt",
+    # Generisk Diadora norsk (Stabæk brukte Diadora i grønn-arm-perioden)
+    "diadora norway 1998 shirt", "diadora norwegian club green",
 ]
 
 
@@ -158,9 +187,8 @@ def main():
         ("grailed",     GrailedScraper().search,          2.0),
         ("cultkits",    CultKitsScraper().search,         2.0),
         ("classickits", ClassicKitsNoScraper().search,    1.5),
-        # 532.no deaktivert (API stengt 2026-06)
-        # ("532",         S532Scraper().search,             1.5),
         ("websearch",   WebSearchScraper().search,        3.0),
+        ("facebook",    FacebookMarketplaceScraper().search, 3.0),
     ]
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",
