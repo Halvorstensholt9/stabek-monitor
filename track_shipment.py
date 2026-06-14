@@ -24,14 +24,16 @@ STATE_FILE = ROOT / "tracking_state.json"
 CONFIG     = yaml.safe_load((ROOT / "config.yaml").read_text())
 
 # Forsendelser å følge: (etikett, sporings-URL)
+# Legg til nye kjøp her med samme format, så følger sporeren dem automatisk.
 SHIPMENTS = [
-    {
-        "id":      "lambech_2001",
-        "label":   "Adidas Stabæk JF 2001 #10 Lambech",
-        "url":     "https://grailed.aftership.com/LX045854596PL",
-        "tracking_no": "LX045854596PL",
-        "carrier": "Poczta Polska",
-    },
+    # ✅ HENTET 13.06.2026 – Adidas Stabæk JF 2001 #10 Lambech (LX045854596PL)
+    # {
+    #     "id":      "lambech_2001",
+    #     "label":   "Adidas Stabæk JF 2001 #10 Lambech",
+    #     "url":     "https://grailed.aftership.com/LX045854596PL",
+    #     "tracking_no": "LX045854596PL",
+    #     "carrier": "Poczta Polska",
+    # },
 ]
 
 
