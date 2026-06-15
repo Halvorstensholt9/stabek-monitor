@@ -25,16 +25,25 @@ CFG        = yaml.safe_load((ROOT / "config.yaml").read_text())
 
 
 def post_telegram(text: str) -> None:
-    import json
+    import json, time
     token = CFG["telegram"]["bot_token"]
     chat  = str(CFG["telegram"]["chat_id"])
-    subprocess.run(
-        ["curl", "-sS", "--max-time", "15", "-X", "POST",
-         f"https://api.telegram.org/bot{token}/sendMessage",
-         "-H", "Content-Type: application/json",
-         "-d", json.dumps({"chat_id": chat, "text": text, "parse_mode": "HTML"})],
-        capture_output=True, timeout=20,
-    )
+    payload = json.dumps({"chat_id": chat, "text": text, "parse_mode": "HTML"})
+    # Robust: 3 forsøk med backoff, fang alle feil (curl-timeout krasjet
+    # tidligere hele jobben → exit=1).
+    for attempt in range(3):
+        try:
+            r = subprocess.run(
+                ["curl", "-sS", "--max-time", "25", "-X", "POST",
+                 f"https://api.telegram.org/bot{token}/sendMessage",
+                 "-H", "Content-Type: application/json", "-d", payload],
+                capture_output=True, timeout=30, text=True,
+            )
+            if '"ok":true' in (r.stdout or ""):
+                return
+        except Exception:
+            pass
+        time.sleep(3)
 
 
 def main():
