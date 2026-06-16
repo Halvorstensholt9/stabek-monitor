@@ -32,13 +32,18 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     text = _text(ad)
 
     # ── 1. Required term (inkl. vanlige skrivfeil) ───────────────────────
+    # Kun navn som er SÅ unike at de nesten garantert peker på Stabæk.
+    # Vanlige etternavn (Kennedy, Riseth, Thorstvedt, Bjørnebye osv.) er fjernet
+    # fordi de gir false positives på Liverpool-, Norge- og Kongsvinger-drakter.
     PLAYER_NAMES = {
-        "veigar", "nannskog", "allanzinho", "andresen",
-        "kjønsberg", "kjoensberg", "belsvik", "rushfeldt",
-        "eftevaag", "leonhardsen", "bjørnebye", "thorstvedt",
-        "lydersen", "riseth", "fjørtoft", "bakircioglu",
-        "kennedy", "christer george", "dorsin", "hagen",
-        "by rise", "sollied",
+        "allanzinho",       # brasiliansk – ekstremt unik Stabæk-legende
+        "bakircioglu",      # Kennedy Bakircioglu – ekstremt unik
+        "nannskog",         # Martin Nannskog – svært Stabæk-spesifikk
+        "veigar",           # Veigar Páll Gunnarsson – Islands/Stabæk-ikon
+        "kjønsberg",        # Rune Kjønsberg
+        "kjoensberg",       # skrivemåte uten æ
+        "belsvik",          # Pål Belsvik
+        "christer george",  # full navn – unikt nok
     }
     required = [t.lower() for t in cfg.get("required_terms", [])]
     if not any(t in text for t in required):
