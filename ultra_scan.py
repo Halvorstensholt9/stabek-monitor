@@ -44,6 +44,8 @@ from scrapers.classickits           import ClassicKitsNoScraper
 from scrapers.websearch             import WebSearchScraper
 from scrapers.tise                  import TiseScraper
 from scrapers.facebook_marketplace  import FacebookMarketplaceScraper
+from scrapers.footballshirtcollective import FootballShirtCollectiveScraper
+from scrapers.kleinanzeigen          import KleinanzeigenScraper
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
@@ -140,6 +142,16 @@ QUERIES = [
     "stabaek player issue 1990s", "stabaek collectors shirt",
     # Generisk Diadora norsk (Stabæk brukte Diadora i grønn-arm-perioden)
     "diadora norway 1998 shirt", "diadora norwegian club green",
+
+    # ── Tyske varianter (Kleinanzeigen.de) ──────────────────────────
+    "stabaek trikot", "stabæk trikot", "stabaek jf", "stabaek norwegen",
+    "stabaek legea", "stabaek fußball", "stabaek fussball trikot",
+    "norwegen trikot vintage", "norwegen fußball diadora",
+    "stabaek heimtrikot", "stabaek auswärtstrikot",
+    # ── Flere spiller/sponsor-kombinasjoner ─────────────────────────
+    "stabaek if drakt grønn", "stabæk if grønne ermer",
+    "stabaek bærum drakt", "stabaek diadora 1999 home",
+    "stabaek umbro vintage", "stabaek kelme drakt",
 ]
 
 
@@ -189,6 +201,8 @@ def main():
         ("classickits", ClassicKitsNoScraper().search,    1.5),
         ("websearch",   WebSearchScraper().search,        3.0),
         ("facebook",    FacebookMarketplaceScraper().search, 3.0),
+        ("fsc",         FootballShirtCollectiveScraper().search, 1.5),
+        ("kleinanzeigen", KleinanzeigenScraper().search,    2.5),
     ]
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",
