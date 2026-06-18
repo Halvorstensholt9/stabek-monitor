@@ -76,7 +76,7 @@ _BLOCKED_DOMAINS = {
     "thesportsdb.com",
     "snl.no", "lokalhistoriewiki.no", "norskfodbold.dk",
     "fotballmuseet.no", "stat.no",
-    "footballhistory.org", "flickr.com", "flickr",
+    "footballhistory.org", "flickr.com", "flickr", "datencenter.dfb", "dfb.de",
 }
 
 # Substrenger som blokkeres uansett TLD (transfermarkt.com/.co.uk/.us osv.)
