@@ -416,9 +416,10 @@ def main():
     run_check(cfg, db, tg)
 
     schedule.every(interval).minutes.do(run_check, cfg=cfg, db=db, tg=tg)
-    # Draktgata-fastcheck deaktivert etter kjøp #2 (Stabæk 1997 home template).
-    # Vanlig 3-min runde dekker Draktgata fremover.
-    # schedule.every(5).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
+    # Draktgata-fastcheck RE-AKTIVERT (ekstra vakt – nye drakter ventes).
+    # Sjekker hele Draktgata-lageret hvert 20. sek, sender link umiddelbart
+    # når en Stabæk-drakt dukker opp.
+    schedule.every(20).seconds.do(run_draktgata_fastcheck, cfg=cfg, db=db, tg=tg)
 
     # Auto-update fra main: sjekk for nye commits hvert 5. min og restart.
     schedule.every(5).minutes.do(check_for_updates, tg=tg)
