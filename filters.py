@@ -272,7 +272,29 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     }
     has_vintage_word = any(w in text for w in VINTAGE_WORDS)
 
+    # ── Bekreftet Stabæk-DRAKT slipper ALLTID gjennom ───────────────────
+    # En ekte Stabæk-drakt er sjelden nok til at den skal varsles uansett
+    # årstall – også moderne. (Tidligere ble «Stabæk 2008 home» stille
+    # droppet her, så brukeren gikk glipp av drakter.) Grønn-arm/vintage
+    # scorer fortsatt høyere; dette er bare et lavprioritert ►-varsel.
+    _JERSEY_WORDS_FINAL = {
+        "drakt", "trøye", "jersey", "shirt", "trikot", "tröja", "trøje",
+        "fotballdrakt", "hjemmedrakt", "bortedrakt", "keeperdrakt",
+        "maillot", "camiseta", "maglia", "voetbalshirt",
+        # Kit-type-ord (Draktgata/butikker bruker «Stabæk 2008 home» uten
+        # ordet «drakt») – kombinert med påkrevd «stabæk» = trygt drakt-signal
+        "home", "away", "third", "hjemme", "borte", "tredje",
+        " gk", "gk ", "keeper", "goalkeeper", "heimtrikot", "auswärts",
+    }
+    _is_stabaek_jersey = _has_required and any(w in text for w in _JERSEY_WORDS_FINAL)
+
     if not is_green_sleeve and not has_vintage_year and not has_vintage_word:
-        return False, 0, "ingen grønn arm, årstall eller vintage-ord"
+        if _is_stabaek_jersey:
+            # Slipp gjennom som lavprioritert – sikrer at INGEN Stabæk-drakt
+            # blir stille droppet.
+            if not reasons:
+                reason_str = "Stabæk-drakt (moderne)"
+            return True, max(score, 1), reason_str
+        return False, 0, "ikke en Stabæk-drakt"
 
     return True, score, reason_str

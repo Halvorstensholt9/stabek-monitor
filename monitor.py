@@ -284,7 +284,11 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         ("reddit",      reddit.search,       s.get("reddit_keywords",      []), 2.0),
         ("catawiki",    cata.search,         s.get("catawiki_keywords",    []), 3.0),
         ("tfi",         tfi.search,          s.get("tfi_keywords",         []), 2.0),
-        ("draktgata",   draktgata.search,    s.get("draktgata_keywords",   []), 2.0),
+        # NB: Draktgata håndteres KUN av run_draktgata_fastcheck (hvert 20. sek,
+        # filter-bypass = varsler på ENHVER ny Stabæk-drakt uansett årstall).
+        # Den må IKKE være her – ellers markerer den vanlige (filtrerende)
+        # runden draktene som «sett», og fastchecken slår aldri alarm.
+        # ("draktgata",   draktgata.search,    s.get("draktgata_keywords",   []), 2.0),
         ("marktplaats", marktplaats.search,  s.get("marktplaats_keywords", []), 2.0),
         ("grailed",     grailed.search,      s.get("grailed_keywords",     []), 2.0),
         ("cultkits",    cultkits.search,     s.get("cultkits_keywords",    []), 2.0),
