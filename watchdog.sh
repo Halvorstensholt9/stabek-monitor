@@ -28,5 +28,7 @@ if [ "$running" -eq 1 ]; then
 fi
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Monitor nede – starter nohup-detached" >> "$DIR/watchdog.log"
-nohup bash "$DIR/start_monitor.sh" > /dev/null 2>&1 &
+# Fang krasj-output (siste oppstart) i egen fil – så vi ser HVORFOR den
+# evt. dør i stedet for å miste bevisene til /dev/null.
+nohup bash "$DIR/start_monitor.sh" > "$DIR/monitor_crash.log" 2>&1 &
 disown 2>/dev/null || true
