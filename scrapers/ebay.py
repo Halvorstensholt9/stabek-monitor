@@ -97,7 +97,18 @@ class EbayScraper:
                 except Exception as exc:
                     logger.warning("eBay %s feil: %s", futures[future], exc)
 
-        return results
+        # ── Kryss-marked-dedup ──────────────────────────────────────────
+        # Samme vare vises ofte på flere eBay-markeder (.de/.at/.nl/.it ...)
+        # med samme vare-ID. Behold KUN første forekomst, ellers varsles
+        # samme drakt opptil 7 ganger.
+        deduped, seen_ids = [], set()
+        for ad in results:
+            aid = ad.get("id")
+            if aid in seen_ids:
+                continue
+            seen_ids.add(aid)
+            deduped.append(ad)
+        return deduped
 
     # ── RSS ──────────────────────────────────────────────────────────────
 

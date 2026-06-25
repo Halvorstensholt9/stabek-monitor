@@ -7,8 +7,9 @@ on:
     - cron: "20 */3 * * *"     # hver 3. time, 20 min over
   workflow_dispatch:
 
+# Samme gruppe som vanlig søk – deler dedup-cache, må aldri overlappe.
 concurrency:
-  group: stabek-deepscan
+  group: stabek-shared-db
   cancel-in-progress: false
 
 jobs:

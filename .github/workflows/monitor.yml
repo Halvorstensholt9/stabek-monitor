@@ -8,8 +8,10 @@ on:
   workflow_dispatch:   # lar deg kjøre manuelt fra Actions-fanen
 
 # Hindrer at to kjøringer overlapper (ville gitt dobbel-varsler)
+# Samme gruppe som dypsøket – de deler dedup-cache og må ALDRI kjøre
+# samtidig (ellers mister de hverandres «sett»-data = duplikat-varsler).
 concurrency:
-  group: stabek-monitor
+  group: stabek-shared-db
   cancel-in-progress: false
 
 jobs:
