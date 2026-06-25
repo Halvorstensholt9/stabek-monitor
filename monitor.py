@@ -118,17 +118,28 @@ def _run_source(
     filter_cfg: dict,
     pause: float = 2.0,
 ) -> int:
-    """Søk alle nøkkelord for én kilde og varsle om nye treff. Trådsikker."""
+    """Søk alle nøkkelord for én kilde og varsle om nye treff. Trådsikker.
+
+    Returnerer (new_hits, helse-dict) der helse-dict har:
+      errors    – antall søkeord som kastet exception
+      total_ads – totalt antall rå-treff fra kilden
+      kw_count  – antall søkeord
+    Brukes for å oppdage døde kilder (errors == kw_count).
+    """
     logger    = logging.getLogger(f"source.{name}")
     new_hits  = 0
     seen_urls = set()   # unngå duplikater innen samme kilde-sjekk
+    _errors   = 0
+    _total    = 0
 
     for kw in keywords:
         try:
             ads = search_fn(kw)
+            _total += len(ads)
         except Exception as exc:
             logger.error("Uventet feil: %s", exc)
             ads = []
+            _errors += 1
 
         for ad in ads:
             # Hopp over hvis vi allerede har sendt denne URL-en i denne runden
@@ -199,7 +210,7 @@ def _run_source(
         if len(keywords) > 1:
             time.sleep(pause)
 
-    return new_hits
+    return new_hits, {"errors": _errors, "total_ads": _total, "kw_count": len(keywords)}
 
 
 # ── Draktgata hurtigsjekk (hvert 30. sek) ───────────────────────────────
@@ -307,6 +318,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     t0        = time.monotonic()
     total_new = 0
 
+    health = {}   # kilde -> helse-dict
     with ThreadPoolExecutor(max_workers=len(sources), thread_name_prefix="scraper") as pool:
         futures = {
             pool.submit(_run_source, name, fn, kws, db, tg, fc, pause): name
@@ -316,9 +328,55 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         for future in as_completed(futures):
             src = futures[future]
             try:
-                total_new += future.result()
+                hits, h = future.result()
+                total_new += hits
+                health[src] = h
             except Exception as exc:
                 logger.error("Kilde %s krasjet: %s", src, exc)
+                health[src] = {"errors": 1, "total_ads": 0, "kw_count": 1, "crashed": True}
+
+    # ── Helsesjekk: varsle om DØDE kilder ───────────────────────────────
+    # En kilde regnes som «nede» hvis ALLE søkeordene kastet exception,
+    # eller hele kilden krasjet. (0 treff er normalt – kun feil teller.)
+    dead = set()
+    for src, h in health.items():
+        if h.get("crashed") or (h["kw_count"] > 0 and h["errors"] >= h["kw_count"]):
+            dead.add(src)
+
+    # Debounce via state-fil (ligger i actions/cache): varsle KUN ved endring.
+    import json as _json
+    _hs_path = "health_state.json"
+    try:
+        prev_dead = set(_json.load(open(_hs_path)))
+    except Exception:
+        prev_dead = set()
+
+    newly_dead   = dead - prev_dead          # gått ned siden sist
+    recovered    = prev_dead - dead          # kommet tilbake siden sist
+
+    if newly_dead:
+        logger.error("🔴 NYE DØDE KILDER: %s", ", ".join(newly_dead))
+        try:
+            tg.send_text(
+                "⚠️ <b>KILDE(R) NEDE</b>\n"
+                + "\n".join(f"🔴 {d}" for d in sorted(newly_dead))
+                + "\n\n<i>Svarte med feil på alle søk – sjekk om de har "
+                  "endret seg. Resten kjører normalt.</i>"
+            )
+        except Exception:
+            pass
+    if recovered:
+        logger.info("🟢 GJENOPPRETTEDE KILDER: %s", ", ".join(recovered))
+        try:
+            tg.send_text("✅ <b>Kilde(r) oppe igjen:</b> "
+                         + ", ".join(sorted(recovered)))
+        except Exception:
+            pass
+
+    try:
+        _json.dump(sorted(dead), open(_hs_path, "w"))
+    except Exception:
+        pass
 
     elapsed = time.monotonic() - t0
     total   = db.count()

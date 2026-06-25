@@ -173,9 +173,13 @@ def _run_source(name, scraper_fn, pause):
 
 
 def main():
+    import os
     cfg = yaml.safe_load(open("config.yaml", encoding="utf-8"))
     db = Database(cfg["database"]["path"])
-    tg = Telegram(cfg["telegram"]["bot_token"], cfg["telegram"]["chat_id"])
+    # Miljøvariabler overstyrer config (sky-deploy med GitHub Secrets)
+    token   = os.environ.get("TELEGRAM_BOT_TOKEN") or cfg["telegram"]["bot_token"]
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")   or cfg["telegram"]["chat_id"]
+    tg = Telegram(token, chat_id)
     fc = cfg["filters"]
 
     # (navn, scraper-funksjon, pause-mellom-søk)

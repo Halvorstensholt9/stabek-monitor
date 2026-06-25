@@ -32,6 +32,10 @@ _MARKETS = {
     # Disse er de største eBay-markedene – brukeren gikk glipp av en her.
     "ebay.co.uk": ("https://www.ebay.co.uk/sch/i.html", True),
     "ebay.com":   ("https://www.ebay.com/sch/i.html",   True),
+    # Flere europeiske markeder lagt til 2026-06-25 (fungerer m/ home-først).
+    "ebay.it":    ("https://www.ebay.it/sch/i.html",    True),
+    "ebay.es":    ("https://www.ebay.es/sch/i.html",    True),
+    "ebay.at":    ("https://www.ebay.at/sch/i.html",    True),
     # ebay.fr droppet – ustabil (gir splashui-utfordring under last)
 }
 # Bakoverkompatibel alias (deep_scan.py o.a. kan bruke _RSS_URLS)
