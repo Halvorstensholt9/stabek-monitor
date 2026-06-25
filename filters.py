@@ -35,17 +35,25 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     # Kun navn som er SÅ unike at de nesten garantert peker på Stabæk.
     # Vanlige etternavn (Kennedy, Riseth, Thorstvedt, Bjørnebye osv.) er fjernet
     # fordi de gir false positives på Liverpool-, Norge- og Kongsvinger-drakter.
+    # Unike spillernavn – peker nesten garantert på Stabæk alene.
     PLAYER_NAMES = {
         "allanzinho",       # brasiliansk – ekstremt unik Stabæk-legende
-        "bakircioglu",      # Kennedy Bakircioglu – ekstremt unik
         "nannskog",         # Martin Nannskog – svært Stabæk-spesifikk
-        "veigar",           # Veigar Páll Gunnarsson – Islands/Stabæk-ikon
         "kjønsberg",        # Rune Kjønsberg
         "kjoensberg",       # skrivemåte uten æ
         "belsvik",          # Pål Belsvik
-        "christer george",  # full navn – unikt nok
         "lambech",          # bekreftet 2026-05-30: Adidas Stabæk JF 2001 #10
     }
+    # Tvetydige navn – har sterk ANNEN betydning. Teller KUN sammen med
+    # Stabæk/Norge-kontekst (ellers fanger de League of Legends «Veigar»,
+    # Panini Sverige «Bakircioglu» osv.).
+    AMBIGUOUS_PLAYERS = {
+        "veigar",           # = League of Legends-figur
+        "bakircioglu",      # spilte for Sverige – Panini Sverige-klistremerker
+        "christer george",  # generisk navn
+    }
+    _NORDIC_CTX = ("stab", "norway", "norge", "norwegen", "norsk", "norvegia",
+                   "eliteserien", "tippeligaen")
     # SPONSOR_NAMES-bypass FJERNET – Kärcher er en ekte produktprodusent
     # som lager grønne trykkvaskere/rengjøringsmidler. Bypass-en skapte
     # 100+ falske treff («Kärcher K2 Hochdruckreiniger» osv.). Sponsorer
@@ -54,6 +62,10 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     required = [t.lower() for t in cfg.get("required_terms", [])]
     _has_required = any(t in text for t in required)
     _has_player   = any(p in text for p in PLAYER_NAMES)
+    # Tvetydige navn teller bare med nordisk/Stabæk-kontekst i teksten
+    if not _has_player and any(p in text for p in AMBIGUOUS_PLAYERS):
+        if any(ctx in text for ctx in _NORDIC_CTX):
+            _has_player = True
     if not (_has_required or _has_player):
         return False, 0, "mangler stabæk"
 
@@ -230,9 +242,22 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     reasons = []
 
     # 🟢 GRØNNE ERMER – høyeste prioritet, dominerer alt annet
+    # Årstall – beregnes først (trengs for grail-sjekken under)
+    years_in_text = [int(y) for y in _YEAR_RE.findall(text)]
+    vintage_from = cfg["vintage_year_range"]["from"]
+    vintage_to   = cfg["vintage_year_range"]["to"]
+    has_vintage_year = any(vintage_from <= y <= vintage_to for y in years_in_text)
+    has_any_year     = bool(years_in_text)
+
     if is_green_sleeve:
-        score += 10
-        reasons.append("🟢 GRØNNE ERMER")
+        # ── GRALEN: vintage (1990–2004) + grønn arm = det vi LETER etter ──
+        # Skill den fra moderne grønne Stabæk-drakter med egen topp-alarm.
+        if has_vintage_year:
+            score += 20
+            reasons.append("🟢🏆 VINTAGE GRØNN ARM (GRALEN!)")
+        else:
+            score += 10
+            reasons.append("🟢 GRØNNE ERMER")
     elif has_green:
         score += 3
         reasons.append("grønn farge")
@@ -243,13 +268,6 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     score += len(matched)
     if matched:
         reasons.append(", ".join(matched[:4]))
-
-    # Årstall – reager på ALLE år, ikke bare vintage-range
-    years_in_text = [int(y) for y in _YEAR_RE.findall(text)]
-    vintage_from = cfg["vintage_year_range"]["from"]
-    vintage_to   = cfg["vintage_year_range"]["to"]
-    has_vintage_year = any(vintage_from <= y <= vintage_to for y in years_in_text)
-    has_any_year     = bool(years_in_text)
 
     if has_vintage_year:
         score += 2
