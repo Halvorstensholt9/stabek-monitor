@@ -170,13 +170,15 @@ def _run_source(
                              "christer george"}
             _title_lc = ad.get("title", "").lower().replace("\xe6", "ae")
             _is_stabæk_title = any(t in _title_lc for t in _STABÆK_TITLE)
-            _has_jersey_word = any(w in _title_lc for w in _JERSEY_WORD)
             _has_player_in_title = any(p in _title_lc for p in _PLAYER_TITLE)
             _desc = ad.get("description", "").strip()
-            # Kjør bildeanalyse på alt som ser ut som en Stabæk-drakt-annonse
-            # (Stabæk-tittel + drakt-ord  ELLER  bekreftet spillernavn)
+            # Kjør bildeanalyse på ENHVER Stabæk-titlet vare (eller spillernavn).
+            # Tidligere krevde vi også et drakt-ord (drakt/shirt/jersey...) –
+            # men «Vintage Stabaek FC football» har ingen av dem, så grønn-arm
+            # ble aldri oppdaget og brukeren gikk glipp av drakta. Stabæk-varer
+            # er sjeldne nok til at vi trygt kan bildeanalysere alle.
             if (ad.get("image_url")
-                    and ((_is_stabæk_title and _has_jersey_word) or _has_player_in_title)):
+                    and (_is_stabæk_title or _has_player_in_title)):
                 if has_green_sleeve(ad["image_url"]):
                     if not _desc:
                         ad["description"] = "grønne ermer (funnet via bildeanalyse)"
