@@ -102,12 +102,19 @@ def _to_ad(p: dict) -> Optional[Dict]:
     if not title:
         return None
 
+    # ── Hopp over UTSOLGTE produkter ────────────────────────────────────
+    # Draktgata beholder solgte drakter i products.json. Uten denne sjekken
+    # varslet vi om drakter som allerede var solgt (bruker gikk «glipp» av
+    # dem fordi de var borte da varselet kom).
+    variants = p.get("variants") or []
+    if variants and not any(v.get("available", False) for v in variants):
+        return None
+
     handle = p.get("handle") or pid
     url    = f"{_BASE}/products/{handle}"
 
     # Pris fra første variant
     price_cents = None
-    variants = p.get("variants") or []
     if variants:
         price_cents = variants[0].get("price")
     if price_cents is None:
