@@ -25,8 +25,13 @@ logger = logging.getLogger(__name__)
 # blokkerer curl_cffi der, uansett impersonation. Testet 2026-05-30.
 # DE, NL, FR fungerer med safari17_0; NL trenger hjemmeside-besøk for cookies.
 _MARKETS = {
-    "ebay.de":  ("https://www.ebay.de/sch/i.html",  False),
-    "ebay.nl":  ("https://www.ebay.nl/sch/i.html",  True),
+    "ebay.de":    ("https://www.ebay.de/sch/i.html",    False),
+    "ebay.nl":    ("https://www.ebay.nl/sch/i.html",    True),
+    # UK + COM re-aktivert 2026-06-25: fungerer nå med safari17_0 +
+    # hjemmeside-besøk først (henter cookies, omgår 403/JS-utfordring).
+    # Disse er de største eBay-markedene – brukeren gikk glipp av en her.
+    "ebay.co.uk": ("https://www.ebay.co.uk/sch/i.html", True),
+    "ebay.com":   ("https://www.ebay.com/sch/i.html",   True),
     # ebay.fr droppet – ustabil (gir splashui-utfordring under last)
 }
 # Bakoverkompatibel alias (deep_scan.py o.a. kan bruke _RSS_URLS)
