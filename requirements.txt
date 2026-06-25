@@ -7,5 +7,6 @@ httpx[http2]>=0.27.0
 curl_cffi>=0.7.0
 anthropic>=0.40.0
 Pillow>=10.0.0
+playwright>=1.40.0          # Tise (headless Chromium)
 # facebook-scraper>=0.6.2   # Aktiver når du vil legge til Facebook-støtte
 # lxml_html_clean>=0.1.0    # Nødvendig for facebook-scraper på Python 3.13+

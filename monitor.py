@@ -344,6 +344,9 @@ def main():
     parser.add_argument("--test-alarm", action="store_true",
                         help="Send en falsk Draktgata-alarm for å teste varslingen")
     parser.add_argument("--config", default="config.yaml")
+    parser.add_argument("--once", action="store_true",
+                        help="Kjør én full runde + Draktgata-sjekk og avslutt "
+                             "(brukes av GitHub Actions / cron i skyen)")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -387,6 +390,18 @@ def main():
         }
         tg.send_draktgata_alarm(mock_ad)
         logger.info("Test-alarm sendt!")
+        return
+
+    if args.once:
+        # Skydrift (GitHub Actions): én runde, ingen oppstartsmelding,
+        # ingen evig løkke. Cron kjører dette på nytt hvert intervall.
+        logger.info("── ÉN RUNDE (--once, sky) ──")
+        hits = run_check(cfg, db, tg)
+        try:
+            run_draktgata_fastcheck(cfg, db, tg)
+        except Exception as exc:
+            logger.error("Draktgata-sjekk feilet: %s", exc)
+        logger.info("Runde ferdig (--once): %d nye treff.", hits)
         return
 
     if args.test:

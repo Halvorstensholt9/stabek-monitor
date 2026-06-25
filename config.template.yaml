@@ -12,7 +12,7 @@ search:
 
   # ── Finn.no ──────────────────────────────────────────────────────────────
   finn_keywords:
-    # Basis – korrekt + skrivfeil
+    # Basis – korrekt + skrivfeil (alle varianter)
     - "stabæk drakt"
     - "stabæk fotballdrakt"
     - "stabæk trøye"
@@ -23,6 +23,9 @@ search:
     - "stabek drakt"
     - "stabek"
     - "stabak drakt"
+    - "stabækk drakt"
+    - "stabekk drakt"
+    - "stabæck drakt"
     - "stabbæk"
     # Grønn arm – alle mulige formuleringer
     - "stabæk grønn"
@@ -98,36 +101,24 @@ search:
 
   # ── eBay (5 markeder, søkes parallelt) ─────────────────────────────────
   ebay_keywords:
+    # ── MODERAT TRIM: 34 søkeord × 4 markeder (UK/DE/NL/US) for ~10-12 min runde ──
     # Basis klubbnavn
     - "Stabaek shirt"
     - "Stabæk shirt"
-    - "Stabek shirt"
-    - "Stabak shirt"
-    - "Stabaek football shirt"
     - "Stabaek jersey"
     - "Stabæk jersey"
-    - "Stabaek IF shirt"
-    - "Stabaek IF jersey"
-    - "Stabæk football"
-    # Grønn arm – alle engelske formuleringer
+    - "Stabaek football shirt"
+    # Grønn arm – høyest prioritet
     - "Stabaek green sleeve"
-    - "Stabaek green arm"
-    - "Stabaek green shirt"
     - "Stabæk green sleeve"
-    - "Stabæk green arm"
-    - "Stabæk long sleeve"
-    - "Stabaek long sleeve"
-    - "Stabaek longsleeve"
+    - "Stabaek green arm"
     - "Stabaek teal sleeve"
-    - "Stabaek teal shirt"
     - "Stabaek turquoise"
+    - "Stabaek long sleeve"
     # Merker
     - "Stabaek Diadora"
     - "Stabæk Diadora"
     - "Stabaek Umbro"
-    - "Stabæk Umbro"
-    - "Stabaek Adidas"
-    - "Stabæk Adidas"
     # Sponsorer
     - "Stabaek Karcher"
     - "Stabaek Kärcher"
@@ -135,44 +126,23 @@ search:
     - "Stabaek vintage"
     - "Stabæk vintage"
     - "Stabaek retro"
-    - "Stabæk retro"
     - "Stabaek 90s"
-    - "Stabaek 1990s"
-    # Alle årstall
-    - "Stabaek 1993 shirt"
-    - "Stabaek 1994 shirt"
-    - "Stabaek 1995 shirt"
-    - "Stabaek 1996 shirt"
-    - "Stabaek 1997 shirt"
+    # Nøkkelår (cup-året 1998 + 1999)
     - "Stabaek 1998 shirt"
     - "Stabaek 1999 shirt"
-    - "Stabaek 2000 shirt"
-    - "Stabaek 2001 shirt"
-    - "Stabaek 2002 shirt"
     # Norge-søk for ukjente selgere
     - "Stabaek Norway shirt"
-    - "Stabæk Norway"
-    - "Norway Diadora football shirt"
     - "Norway vintage Diadora shirt"
-    - "Norway 90s football shirt green"
-    - "Norwegian club shirt vintage"
     - "Norwegian football shirt green sleeve"
-    - "Scandinavian football shirt vintage green"
     # Spillere
     - "Allanzinho Stabaek"
-    - "Allanzinho shirt"
-    - "Allanzinho jersey"
-    - "Veigar Páll shirt"
     - "Veigar Stabaek"
-    - "Veigar Gunnarsson shirt"
     - "Nannskog Stabaek"
-    - "Nannskog shirt"
     - "Kjønsberg Stabæk"
     - "Belsvik Stabæk"
     - "Bakircioglu Stabaek"
     # Matchworn/signert
     - "Stabaek match worn"
-    - "Stabæk match worn"
     - "Stabæk signed"
     - "Stabaek player issue"
 
@@ -186,6 +156,11 @@ search:
     - "stabek"
     - "stabak"
     - "stabbæk"
+    - "stabækk"
+    - "stabekk"
+    - "stabæck"
+    - "stabækk drakt"
+    - "stabekk drakt"
     - "stabæk retro"
     - "stabæk vintage"
     # Grønn arm
@@ -316,22 +291,16 @@ search:
     - "bakircioglu stabæk"
 
   # ── Forzasecondhand.no ──────────────────────────────────────────────────
+  # NB: Forza selger drakter fra ALLE klubber. Søk KUN på Stabæk-spesifikke
+  # termer – aldri generiske ord som "signert", "kärcher" alene osv.,
+  # da disse matcher hele katalogen på 2000+ produkter.
   forza_keywords:
+    # Stabæk – korrekt + skrivfeil
     - "stabæk"
     - "stabaek"
     - "stabek"
-    - "stabæk IF"
-    - "stabæk drakt"
-    # Grønn arm
-    - "stabæk grønn"
-    - "stabæk grønne ermer"
-    - "stabæk grønn arm"
-    - "stabæk langermet"
-    # Sponsorer på drakten – viktig for Forza som søker i fritekst/tags
-    - "kärcher"
-    - "karcher"
-    - "k-bank"
-    # Spillere
+    - "stabak"
+    # Spillere som er SÅ Stabæk-unike at de ikke finnes i andre klubber
     - "allanzinho"
     - "veigar"
     - "nannskog"
@@ -942,6 +911,101 @@ search:
     - "stabaek vintage"
     - "stabaek retro"
 
+  # ── Classickits.no (Norge – vintage/retro Shopify) ────────────────────
+  classickits_keywords:
+    - "stabæk"
+    - "stabaek"
+    - "stabek"
+    - "stabækk"
+    - "stabekk"
+    - "stabæck"
+    - "norway"
+    - "norge"
+    - "vintage"
+    - "retro"
+    - "diadora"
+    - "kelme"
+
+  # ── 532.no (Norge – originale fotballdrakter Shopify) ─────────────────
+  s532_keywords:
+    - "stabæk"
+    - "stabaek"
+    - "stabek"
+    - "stabækk"
+    - "stabekk"
+    - "stabæck"
+    - "norway"
+    - "norge"
+    - "vintage"
+    - "retro"
+    - "diadora"
+    - "1998"
+    - "1999"
+    - "2000"
+    - "2001"
+
+  # ── Generelt websøk (DuckDuckGo) – fanger små sider vi ikke vet om ────
+  # Tema-baserte søk; egne skrapere for kjente domener filtreres bort.
+  websearch_keywords:
+    - "stabæk drakt selges"
+    - "stabæk drakt vintage"
+    - "stabæk drakt grønn arm"
+    - "stabæk drakt grønne ermer"
+    - "stabæk fotballdrakt retro"
+    - "stabæk drakt 1998"
+    - "stabæk drakt 1999"
+    - "stabæk drakt 2001"
+    - "stabæk drakt 2002"
+    - "stabaek shirt vintage"
+    - "stabaek football shirt 1990s"
+    - "stabaek green sleeve shirt"
+    - "stabaek diadora shirt for sale"
+    - "stabaek lambech"
+    - "stabaek allanzinho"
+    - "stabaek nannskog"
+    - "stabaek belsvik"
+    - "stabaek kärcher drakt"
+
+  # ── Facebook Marketplace (Norge, uten innlogging) ─────────────────────
+  # Få men presise søk – FB returnerer bare 4-8 server-side-rendrede treff
+  # per søk, så vi bruker brede termer som garantert fanger Stabæk-ting.
+  facebook_keywords:
+    - "stabæk"
+    - "stabæk drakt"
+    - "stabæk fotball"
+    - "stabæk vintage"
+    - "stabæk retro"
+    - "stabaek"
+    - "stabæk grønn"
+    - "stabæk diadora"
+    - "stabæk 1998"
+    - "stabæk lambech"
+
+  # ── Football Shirt Collective (UK vintage-markedsplass, Shopify) ──────
+  fsc_collective_keywords:
+    - "stabæk"
+    - "stabaek"
+    - "stabek"
+    - "norway"
+    - "norwegian"
+    - "diadora norway"
+    - "kelme norway"
+
+  # ── Kleinanzeigen.de (Tysklands største bruktmarked) ──────────────────
+  kleinanzeigen_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "stabaek trikot"
+    - "stabæk trikot"
+    - "stabaek jf"
+    - "stabaek norwegen"
+    - "stabaek legea"
+    - "stabaek diadora"
+    - "allanzinho stabaek"
+    - "stabaek 1998"
+    - "stabaek 1999"
+    - "stabaek vintage"
+
 filters:
   required_terms:
     - "stabæk"
@@ -950,6 +1014,12 @@ filters:
     - "stabak"
     - "stabbæk"
     - "stabæck"
+    - "stabækk"   # dobbelt k (vanlig feilstaving)
+    - "stabekk"   # dobbelt k uten æ (også navn på en skole, men filteret tar 'stabekk skole')
+    - "stabeck"   # tysk/utenlandsk skrivemåte
+    - "stabech"   # sjelden feilstaving
+    - "stabæk's"  # genitiv-form
+    - "stabaek's"
 
   high_relevance_terms:
     # ── Grønn arm – alle mulige farge-/erm-formuleringer ───────────────────

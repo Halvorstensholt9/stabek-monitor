@@ -1,0 +1,50 @@
+name: Stabæk Monitor (sky)
+
+# Kjører i GitHubs sky – uavhengig av Halvors Mac.
+# Cron hvert 15. minutt (GitHub kan forsinke noen min under last).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:   # lar deg kjøre manuelt fra Actions-fanen
+
+# Hindrer at to kjøringer overlapper (ville gitt dobbel-varsler)
+concurrency:
+  group: stabek-monitor
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer avhengigheter
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      # Persistér dedup-databasen mellom kjøringer (ellers re-varsles alt).
+      # Unik key per kjøring + restore-keys henter siste lagrede.
+      - name: Gjenopprett database-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            seen_ads.db
+            image_cache.db
+          key: stabek-db-${{ github.run_id }}
+          restore-keys: |
+            stabek-db-
+
+      - name: Kjør én runde
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cp config.template.yaml config.yaml
+          python monitor.py --once
