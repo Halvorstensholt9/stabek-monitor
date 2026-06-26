@@ -426,6 +426,28 @@ def main():
     if not tg.verify_connection():
         sys.exit("❌  Klarer ikke å koble til Telegram. Sjekk bot_token.")
 
+    # ── Stille re-priming etter DB-gjenoppbygging (korrupsjon) ──────────
+    # Hvis databasen nettopp ble bygd på nytt, ville en normal runde
+    # re-varslet HELE lageret. Vi kjører i stedet én STILLE runde som
+    # bare markerer alt som sett, og sender én diskret heads-up.
+    from database import DB_RESET_MARKER
+    if os.path.exists(DB_RESET_MARKER):
+        logger.info("DB ble gjenoppbygd – kjører STILLE re-priming (ingen varsler).")
+        try:
+            tg.send_text("🔧 <i>Databasen ble nullstilt (korrupt cache) – "
+                         "primer stille én runde, så er alt normalt igjen. "
+                         "Ingen varsler denne runden.</i>")
+        except Exception:
+            pass
+        # Nøytraliser alle utsendinger denne kjøringen
+        tg.send_ad            = lambda *a, **k: None
+        tg.send_text          = lambda *a, **k: None
+        tg.send_draktgata_alarm = lambda *a, **k: None
+        try:
+            os.remove(DB_RESET_MARKER)
+        except OSError:
+            pass
+
     # Tell opp antall aktive kilder
     source_keys = [
         "finn_keywords", "ebay_keywords", "tise_keywords", "vinted_keywords",

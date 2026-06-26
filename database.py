@@ -1,14 +1,43 @@
+import os
 import sqlite3
 import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Marker som settes når DB måtte bygges på nytt pga. korrupsjon.
+# monitor.py leser denne og kjører da én STILLE runde (marker alt sett
+# uten å varsle) så brukeren ikke får en flom av re-varsler.
+DB_RESET_MARKER = ".db_was_reset"
+
 
 class Database:
     def __init__(self, path: str):
         self.path = path
+        self._heal_if_corrupt()
         self._init_db()
+
+    def _heal_if_corrupt(self) -> None:
+        """Oppdag korrupt SQLite-fil (f.eks. avbrutt cache-skriving i sky)
+        og bygg den på nytt. Setter markør så monitor kan kjøre stille."""
+        if not os.path.exists(self.path):
+            return
+        try:
+            conn = sqlite3.connect(self.path, timeout=10)
+            ok = conn.execute("PRAGMA integrity_check").fetchone()
+            conn.close()
+            if ok and ok[0] == "ok":
+                return
+            raise sqlite3.DatabaseError(f"integrity_check: {ok}")
+        except sqlite3.DatabaseError as exc:
+            logger.error("DB korrupt (%s) – bygger ny: %s", self.path, exc)
+            for suffix in ("", "-wal", "-shm"):
+                try: os.remove(self.path + suffix)
+                except OSError: pass
+            try:
+                open(DB_RESET_MARKER, "w").write("1")
+            except OSError:
+                pass
 
     def _connect(self) -> sqlite3.Connection:
         # timeout=30 = vent inntil 30 sek hvis databasen er låst (mange
