@@ -1,9 +1,16 @@
 import os
+import threading
 import sqlite3
 import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# Global skrivelås – serialiserer DB-skriving fra de 23 parallelle
+# skraper-trådene. Erstatter WAL-modus, som var uforenlig med sky-cachen
+# (WAL legger nye data i en -wal-sidecar som cachen IKKE lagrer →
+# inkonsistent .db → «database disk image is malformed»).
+_WRITE_LOCK = threading.Lock()
 
 # Marker som settes når DB måtte bygges på nytt pga. korrupsjon.
 # monitor.py leser denne og kjører da én STILLE runde (marker alt sett
@@ -45,9 +52,9 @@ class Database:
         # «database is locked»-feilene.
         conn = sqlite3.connect(self.path, timeout=30)
         conn.row_factory = sqlite3.Row
-        # WAL-mode tillater flere lesere samtidig med én skriver,
-        # og er mye mer tolerant mot parallell tilgang enn standard.
-        conn.execute("PRAGMA journal_mode=WAL")
+        # IKKE WAL: enkelt-fil-modus (DELETE) gjør at hele DB-en alltid
+        # ligger i seen_ads.db – trygt å lagre/gjenopprette via sky-cache.
+        # Parallell skriving håndteres av _WRITE_LOCK i stedet.
         conn.execute("PRAGMA busy_timeout=30000")
         return conn
 
@@ -75,7 +82,7 @@ class Database:
         return row is not None
 
     def mark_seen(self, ad_id: str, source: str, title: str, url: str) -> None:
-        with self._connect() as conn:
+        with _WRITE_LOCK, self._connect() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO seen_ads (id, source, title, url) VALUES (?, ?, ?, ?)",
                 (str(ad_id), source, title or "", url or ""),
@@ -84,8 +91,8 @@ class Database:
 
     def check_and_mark(self, ad_id: str, source: str, title: str, url: str) -> bool:
         """Atomisk: marker som sett og returner True hvis dette var nytt.
-        Trådsikker – rowcount=1 betyr at raden ble satt inn (ny annons)."""
-        with self._connect() as conn:
+        Serialisert via _WRITE_LOCK – trygt fra mange parallelle tråder."""
+        with _WRITE_LOCK, self._connect() as conn:
             cur = conn.execute(
                 "INSERT OR IGNORE INTO seen_ads (id, source, title, url) VALUES (?, ?, ?, ?)",
                 (str(ad_id), source, title or "", url or ""),
