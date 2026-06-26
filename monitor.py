@@ -107,6 +107,16 @@ def check_for_updates(tg=None) -> None:
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
+# ── Flom-vakt ─────────────────────────────────────────────────────────────
+# Maks varsler per runde. Overstiges dette, stopper boten og sender ÉN
+# advarsel i stedet for å flomme. Nullstilles i starten av run_check().
+import threading as _threading
+_ALERT_CAP   = 14
+_ALERT_LOCK  = _threading.Lock()
+_alert_count = 0
+_suppressed  = 0
+
+
 # ── Per-source worker (kjøres i tråd) ────────────────────────────────────
 
 def _run_source(
@@ -206,6 +216,15 @@ def _run_source(
                     "%s NYTT TREFF [score=%d] %s | %s",
                     symbol, score, ad.get("title"), reason,
                 )
+                # ── FLOM-VAKT ────────────────────────────────────────────
+                # Stopp utsending hvis én runde overstiger taket (14). Da er
+                # noe galt (filter-glipp) – heller varsle ÉN gang enn å flomme.
+                with _ALERT_LOCK:
+                    global _alert_count, _suppressed
+                    if _alert_count >= _ALERT_CAP:
+                        _suppressed += 1
+                        continue
+                    _alert_count += 1
                 tg.send_ad(ad, score=score, match_reason=reason)
                 new_hits += 1
 
@@ -320,6 +339,11 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     t0        = time.monotonic()
     total_new = 0
 
+    # Nullstill flom-vakt for denne runden
+    global _alert_count, _suppressed
+    _alert_count = 0
+    _suppressed  = 0
+
     health = {}   # kilde -> helse-dict
     with ThreadPoolExecutor(max_workers=len(sources), thread_name_prefix="scraper") as pool:
         futures = {
@@ -379,6 +403,21 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         _json.dump(sorted(dead), open(_hs_path, "w"))
     except Exception:
         pass
+
+    # ── Flom-vakt utløst? ────────────────────────────────────────────────
+    if _suppressed > 0:
+        logger.error("🚨 FLOM-VAKT: %d sendt, %d undertrykt (tak=%d)",
+                     _alert_count, _suppressed, _ALERT_CAP)
+        try:
+            tg.send_text(
+                f"🚨 <b>FLOM-VAKT UTLØST</b>\n"
+                f"Boten ville sendt <b>{_alert_count + _suppressed}</b> varsler i "
+                f"én runde – stoppet etter {_ALERT_CAP}.\n"
+                f"Noe er sannsynligvis galt (filter-glipp / kilde-endring).\n"
+                f"<i>{_suppressed} varsler holdt tilbake. Sjekk før resten slippes.</i>"
+            )
+        except Exception:
+            pass
 
     elapsed = time.monotonic() - t0
     total   = db.count()
