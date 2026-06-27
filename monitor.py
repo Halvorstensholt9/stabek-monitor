@@ -431,6 +431,34 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
             "Sjekk ferdig på %.0fs – ingen nye treff. (totalt sett: %d)",
             elapsed, total,
         )
+
+    # ── Time-rapport (heartbeat) ────────────────────────────────────────
+    # Sender kompakt statistikk ~hver time så brukeren ser at boten lever,
+    # selv når det ikke er nye treff. Debounce via fil i sky-cachen.
+    try:
+        import json as _json, time as _time
+        _hb_path = "heartbeat_state.json"
+        try:
+            _last = _json.load(open(_hb_path)).get("ts", 0)
+        except Exception:
+            _last = 0
+        if _time.time() - _last >= 3300:   # ~55 min
+            n_sources = len(health)
+            n_dead    = len(dead)
+            health_line = ("✅ alle kilder OK" if n_dead == 0
+                           else f"⚠️ {n_dead} nede: " + ", ".join(sorted(dead)))
+            tg.send_text(
+                "🔍 <b>Stabæk-bot – timesjekk</b>\n"
+                f"📡 {n_sources} kilder sjekket · {health_line}\n"
+                f"📋 {total:,} annonser i basen totalt\n"
+                f"⭐ {total_new} nye treff siste runde\n"
+                f"⏱ runde: {elapsed:.0f}s · 🛒 3 kjøp\n"
+                "<i>Boten lever og jakter. Du varsles straks noe dukker opp.</i>"
+            )
+            _json.dump({"ts": _time.time()}, open(_hb_path, "w"))
+    except Exception as exc:
+        logger.debug("Heartbeat feilet: %s", exc)
+
     return total_new
 
 
