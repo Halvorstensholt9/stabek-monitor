@@ -40,6 +40,7 @@ jobs:
             image_cache.db
             health_state.json
             heartbeat_state.json
+            stats.json
           key: stabek-db-${{ github.run_id }}
           restore-keys: |
             stabek-db-

@@ -432,27 +432,53 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
             elapsed, total,
         )
 
-    # ── Time-rapport (heartbeat) ────────────────────────────────────────
-    # Sender kompakt statistikk ~hver time så brukeren ser at boten lever,
-    # selv når det ikke er nye treff. Debounce via fil i sky-cachen.
+    # ── Akkumuler statistikk (runder/søk/treff – dag + all-time) ────────
+    # Skyen er statsløs per kjøring; vi teller i stats.json (i sky-cachen).
+    # Seedet med lokal historikk så tallene er kontinuerlige.
+    import json as _json, time as _time
+    from datetime import datetime as _dt
+    _stats_path = "stats.json"
+    _SEED = {"all_runs": 973, "all_searches": 562333, "all_hits": 309}
     try:
-        import json as _json, time as _time
+        stats = _json.load(open(_stats_path))
+    except Exception:
+        stats = dict(_SEED, day="", day_runs=0, day_searches=0, day_hits=0)
+    searches_this_run = sum(h.get("kw_count", 0) for h in health.values())
+    today = _dt.now().strftime("%Y-%m-%d")
+    if stats.get("day") != today:
+        stats["day"], stats["day_runs"], stats["day_searches"], stats["day_hits"] = today, 0, 0, 0
+    stats["all_runs"]      += 1
+    stats["all_searches"]  += searches_this_run
+    stats["all_hits"]      += total_new
+    stats["day_runs"]      += 1
+    stats["day_searches"]  += searches_this_run
+    stats["day_hits"]      += total_new
+    try:
+        _json.dump(stats, open(_stats_path, "w"))
+    except Exception:
+        pass
+
+    # ── Time-rapport (heartbeat) ────────────────────────────────────────
+    try:
         _hb_path = "heartbeat_state.json"
         try:
             _last = _json.load(open(_hb_path)).get("ts", 0)
         except Exception:
             _last = 0
         if _time.time() - _last >= 3300:   # ~55 min
-            n_sources = len(health)
-            n_dead    = len(dead)
+            n_dead = len(dead)
             health_line = ("✅ alle kilder OK" if n_dead == 0
                            else f"⚠️ {n_dead} nede: " + ", ".join(sorted(dead)))
             tg.send_text(
                 "🔍 <b>Stabæk-bot – timesjekk</b>\n"
-                f"📡 {n_sources} kilder sjekket · {health_line}\n"
-                f"📋 {total:,} annonser i basen totalt\n"
-                f"⭐ {total_new} nye treff siste runde\n"
-                f"⏱ runde: {elapsed:.0f}s · 🛒 3 kjøp\n"
+                f"📡 {len(health)} kilder · {health_line}\n"
+                "\n<b>I dag:</b> "
+                f"{stats['day_runs']} runder · {stats['day_searches']:,} søk · "
+                f"{stats['day_hits']} treff\n"
+                "<b>All-time:</b> "
+                f"{stats['all_runs']:,} runder · {stats['all_searches']:,} søk · "
+                f"{stats['all_hits']} treff\n"
+                f"📋 {total:,} annonser i basen · 🛒 3 kjøp\n"
                 "<i>Boten lever og jakter. Du varsles straks noe dukker opp.</i>"
             )
             _json.dump({"ts": _time.time()}, open(_hb_path, "w"))
