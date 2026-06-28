@@ -116,7 +116,6 @@ class EbayScraper:
         params = {
             "_nkw": keyword,
             "_sop": "10",            # nyeste først
-            "LH_ItemCondition": "3000",  # brukt
             "_rss": "1",             # be om RSS
         }
         url = f"{base_url}?{urllib.parse.urlencode(params)}"
@@ -210,8 +209,11 @@ class EbayScraper:
         params = {
             "_nkw": keyword,
             "_sop": "10",
-            "LH_ItemCondition": "3000",
-            "_ipg": "60",
+            # INGEN tilstandsfilter: «kun brukt» (LH_ItemCondition=3000) skjulte
+            # ekte Stabæk-drakter lagt ut som «New other»/uten tilstand. En
+            # deadstock vintage-drakt (det beste funnet!) er ofte IKKE «used».
+            # Verifisert 2026-06-28: filteret gjemte 37 Stabæk-annonser.
+            "_ipg": "240",   # 240 pr side (var 60) – dypere dekning pr søk
         }
         url = f"{base_url}?{urllib.parse.urlencode(params)}"
         session = self.sessions.get(site_key, self.html_session)
