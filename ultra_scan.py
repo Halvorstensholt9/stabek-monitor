@@ -182,13 +182,11 @@ def main():
     tg = Telegram(token, chat_id)
     fc = cfg["filters"]
 
-    # Stille re-priming hvis DB nettopp ble gjenoppbygd (korrupsjon)
-    from database import DB_RESET_MARKER
-    if os.path.exists(DB_RESET_MARKER):
+    # Stille re-priming hvis lageret er tomt (ny cache) – ellers ville
+    # dypsøket varslet hele eksisterende inventar på én gang.
+    if db.was_empty:
         tg.send_ad   = lambda *a, **k: None
         tg.send_text = lambda *a, **k: None
-        try: os.remove(DB_RESET_MARKER)
-        except OSError: pass
 
     # (navn, scraper-funksjon, pause-mellom-søk)
     sources = [

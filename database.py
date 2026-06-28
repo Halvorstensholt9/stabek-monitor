@@ -1,113 +1,99 @@
 import os
+import json
 import threading
-import sqlite3
 import logging
+from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Global skrivelås – serialiserer DB-skriving fra de 23 parallelle
-# skraper-trådene. Erstatter WAL-modus, som var uforenlig med sky-cachen
-# (WAL legger nye data i en -wal-sidecar som cachen IKKE lagrer →
-# inkonsistent .db → «database disk image is malformed»).
+# Global skrivelås – serialiserer skriving fra de 23 parallelle skraper-
+# trådene. Holder også in-memory-settet konsistent.
 _WRITE_LOCK = threading.Lock()
 
-# Marker som settes når DB måtte bygges på nytt pga. korrupsjon.
-# monitor.py leser denne og kjører da én STILLE runde (marker alt sett
-# uten å varsle) så brukeren ikke får en flom av re-varsler.
+# Beholdt for bakoverkompatibilitet (monitor.py importerer den). Med JSONL-
+# lagringen kan filen aldri bli «korrupt», så markøren settes aldri lenger.
 DB_RESET_MARKER = ".db_was_reset"
 
 
 class Database:
-    def __init__(self, path: str):
-        self.path = path
-        self._heal_if_corrupt()
-        self._init_db()
+    """Dedup-lager basert på en JSONL-fil (én JSON-annonse per linje).
 
-    def _heal_if_corrupt(self) -> None:
-        """Oppdag korrupt SQLite-fil (f.eks. avbrutt cache-skriving i sky)
-        og bygg den på nytt. Setter markør så monitor kan kjøre stille."""
+    Hvorfor ikke SQLite: SQLite-filen tålte ikke å round-trippe gjennom
+    GitHub Actions-cachen – den ble «database disk image is malformed»
+    (never-used-pages) på HVER kjøring. Da bygde selvhelbredingen den på
+    nytt og primet stille → boten ble effektivt stum. En ren tekstfil
+    (JSONL) kan ikke bli malformed: vi laster den til et sett i minnet og
+    APPENDER nye linjer. Ødelegges siste linje (avbrutt skriving) hopper vi
+    bare over den ved innlasting – i verste fall re-varsles én annonse.
+    """
+
+    def __init__(self, path: str):
+        # Lagre alltid som .jsonl uansett hva config sier (.db = gammel).
+        if path.endswith(".db"):
+            path = path[:-3] + ".jsonl"
+        self.path = path
+        self._seen: dict[tuple[str, str], dict] = {}
+        self._load()
+        # True hvis lageret var tomt ved oppstart → monitor kjører da én
+        # STILLE runde (markerer alt sett uten å varsle) så vi ikke flommer
+        # med hele eksisterende inventar første gang.
+        self.was_empty = len(self._seen) == 0
+        logger.info("Database klar: %s (%d annonser i basen)",
+                    self.path, len(self._seen))
+
+    def _load(self) -> None:
         if not os.path.exists(self.path):
             return
-        try:
-            conn = sqlite3.connect(self.path, timeout=10)
-            ok = conn.execute("PRAGMA integrity_check").fetchone()
-            conn.close()
-            if ok and ok[0] == "ok":
-                return
-            raise sqlite3.DatabaseError(f"integrity_check: {ok}")
-        except sqlite3.DatabaseError as exc:
-            logger.error("DB korrupt (%s) – bygger ny: %s", self.path, exc)
-            for suffix in ("", "-wal", "-shm"):
-                try: os.remove(self.path + suffix)
-                except OSError: pass
-            try:
-                open(DB_RESET_MARKER, "w").write("1")
-            except OSError:
-                pass
+        bad = 0
+        with open(self.path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    r = json.loads(line)
+                    key = (str(r["id"]), r["source"])
+                    self._seen[key] = r
+                except Exception:
+                    bad += 1
+        if bad:
+            logger.warning("%d uleselige linjer hoppet over i %s", bad, self.path)
 
-    def _connect(self) -> sqlite3.Connection:
-        # timeout=30 = vent inntil 30 sek hvis databasen er låst (mange
-        # parallelle skrapere kan konkurrere om skriving). Erstatter
-        # «database is locked»-feilene.
-        conn = sqlite3.connect(self.path, timeout=30)
-        conn.row_factory = sqlite3.Row
-        # IKKE WAL: enkelt-fil-modus (DELETE) gjør at hele DB-en alltid
-        # ligger i seen_ads.db – trygt å lagre/gjenopprette via sky-cache.
-        # Parallell skriving håndteres av _WRITE_LOCK i stedet.
-        conn.execute("PRAGMA busy_timeout=30000")
-        return conn
-
-    def _init_db(self):
-        with self._connect() as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS seen_ads (
-                    id      TEXT NOT NULL,
-                    source  TEXT NOT NULL,
-                    title   TEXT,
-                    url     TEXT,
-                    seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (id, source)
-                )
-            """)
-            conn.commit()
-        logger.debug("Database klar: %s", self.path)
+    def _append(self, rec: dict) -> None:
+        # Append er trygt: hele linjen skrives på én gang. Kalles under lås.
+        with open(self.path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     def is_seen(self, ad_id: str, source: str) -> bool:
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT 1 FROM seen_ads WHERE id = ? AND source = ?",
-                (str(ad_id), source),
-            ).fetchone()
-        return row is not None
+        return (str(ad_id), source) in self._seen
 
     def mark_seen(self, ad_id: str, source: str, title: str, url: str) -> None:
-        with _WRITE_LOCK, self._connect() as conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO seen_ads (id, source, title, url) VALUES (?, ?, ?, ?)",
-                (str(ad_id), source, title or "", url or ""),
-            )
-            conn.commit()
+        key = (str(ad_id), source)
+        with _WRITE_LOCK:
+            if key in self._seen:
+                return
+            rec = {"id": str(ad_id), "source": source, "title": title or "",
+                   "url": url or "", "seen_at": datetime.now().isoformat(timespec="seconds")}
+            self._seen[key] = rec
+            self._append(rec)
 
     def check_and_mark(self, ad_id: str, source: str, title: str, url: str) -> bool:
-        """Atomisk: marker som sett og returner True hvis dette var nytt.
-        Serialisert via _WRITE_LOCK – trygt fra mange parallelle tråder."""
-        with _WRITE_LOCK, self._connect() as conn:
-            cur = conn.execute(
-                "INSERT OR IGNORE INTO seen_ads (id, source, title, url) VALUES (?, ?, ?, ?)",
-                (str(ad_id), source, title or "", url or ""),
-            )
-            conn.commit()
-            return cur.rowcount > 0
+        """Atomisk: marker som sett og returner True hvis dette var nytt."""
+        key = (str(ad_id), source)
+        with _WRITE_LOCK:
+            if key in self._seen:
+                return False
+            rec = {"id": str(ad_id), "source": source, "title": title or "",
+                   "url": url or "", "seen_at": datetime.now().isoformat(timespec="seconds")}
+            self._seen[key] = rec
+            self._append(rec)
+            return True
 
     def count(self) -> int:
-        with self._connect() as conn:
-            return conn.execute("SELECT COUNT(*) FROM seen_ads").fetchone()[0]
+        return len(self._seen)
 
     def recent(self, limit: int = 20) -> list:
-        with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT id, source, title, url, seen_at FROM seen_ads ORDER BY seen_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
-        return [dict(r) for r in rows]
+        rows = sorted(self._seen.values(),
+                      key=lambda r: r.get("seen_at", ""), reverse=True)
+        return rows[:limit]

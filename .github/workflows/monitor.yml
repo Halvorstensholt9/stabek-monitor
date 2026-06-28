@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            seen_ads.db
+            seen_ads.jsonl
             image_cache.db
             health_state.json
             heartbeat_state.json

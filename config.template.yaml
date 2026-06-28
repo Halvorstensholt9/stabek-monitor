@@ -1168,7 +1168,7 @@ filters:
   include_children: false
 
 database:
-  path: "seen_ads.db"
+  path: "seen_ads.jsonl"
 
 logging:
   file: "monitor.log"

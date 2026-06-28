@@ -6,6 +6,10 @@ on:
     - cron: "45 * * * *"
   workflow_dispatch:
 
+permissions:
+  actions: read     # for å telle antall kjøringer (runder) via APIet
+  contents: read
+
 jobs:
   stats:
     runs-on: ubuntu-latest
@@ -22,7 +26,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            seen_ads.db
+            seen_ads.jsonl
             stats.json
           key: stabek-db-x   # treffer aldri eksakt → bruker restore-keys
           restore-keys: |
@@ -31,6 +35,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp config.template.yaml config.yaml
           python hourly_stats.py
