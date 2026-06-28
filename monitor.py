@@ -48,6 +48,7 @@ from scrapers.kleinanzeigen import KleinanzeigenScraper
 from scrapers.marktplaats import MarktplaatsScraper
 from scrapers.grailed import GrailedScraper
 from scrapers.cultkits import CultKitsScraper
+from scrapers.oldfootballshirts import OldFootballShirtsScraper
 # from scrapers.facebook import FacebookScraper  # Aktiver når du er klar
 
 
@@ -299,6 +300,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     facebook    = FacebookMarketplaceScraper()
     fsc         = FootballShirtCollectiveScraper()
     kleinanz    = KleinanzeigenScraper()
+    oldfs       = OldFootballShirtsScraper()
 
     # (navn, søkefunksjon, nøkkelordliste, pause_sek_mellom_søk)
     sources = [
@@ -333,6 +335,7 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         ("facebook",    facebook.search,     s.get("facebook_keywords",    []), 3.0),
         ("fsc",         fsc.search,          s.get("fsc_collective_keywords", []), 1.5),
         ("kleinanzeigen", kleinanz.search,   s.get("kleinanzeigen_keywords", []), 2.5),
+        ("oldfootballshirts", oldfs.search,  s.get("oldfootballshirts_keywords", []), 2.0),
     ]
 
     logger.info("══ Starter sjekk (%d kilder parallelt) ══", len(sources))

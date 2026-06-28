@@ -46,6 +46,7 @@ from scrapers.tise                  import TiseScraper
 from scrapers.facebook_marketplace  import FacebookMarketplaceScraper
 from scrapers.footballshirtcollective import FootballShirtCollectiveScraper
 from scrapers.kleinanzeigen          import KleinanzeigenScraper
+from scrapers.oldfootballshirts       import OldFootballShirtsScraper
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
@@ -213,6 +214,7 @@ def main():
         ("facebook",    FacebookMarketplaceScraper().search, 3.0),
         ("fsc",         FootballShirtCollectiveScraper().search, 1.5),
         ("kleinanzeigen", KleinanzeigenScraper().search,    2.5),
+        ("oldfootballshirts", OldFootballShirtsScraper().search, 2.0),
     ]
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",

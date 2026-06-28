@@ -1006,6 +1006,11 @@ search:
     - "stabaek 1999"
     - "stabaek vintage"
 
+  # OldFootballShirts.com – henter hele Stabæk-lag-arkivet (gral-æraen 1990–2004
+  # inkludert). Lag-siden er den samme uansett ord, så ÉN nøkkel holder.
+  oldfootballshirts_keywords:
+    - "stabæk"
+
 filters:
   required_terms:
     - "stabæk"
