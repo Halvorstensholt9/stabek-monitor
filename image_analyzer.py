@@ -169,16 +169,17 @@ def _vision_detect_green(img_bytes: bytes, content_type: str) -> bool:
                         "type": "text",
                         "text": (
                             "This is a product photo of a football/soccer shirt. "
-                            "I am looking for ONE very specific feature: the SLEEVES "
-                            "(the arm fabric) must be a distinct GREEN or TEAL/turquoise "
-                            "colour that clearly CONTRASTS with the main body/torso of "
-                            "the shirt (e.g. white or blue body with green arms).\n"
+                            "I am looking for ONE specific feature: at least ONE sleeve "
+                            "(the arm fabric) is a distinct GREEN or TEAL/turquoise colour "
+                            "that clearly CONTRASTS with the main body/torso of the shirt. "
+                            "The body is usually white or blue. It counts whether ONE arm "
+                            "or BOTH arms are green/teal.\n"
                             "Do NOT count: green logos, sponsors, numbers, text, trim, "
-                            "piping, collars, the background, grass, or a shirt that is "
-                            "entirely one colour. The SLEEVE FABRIC itself must be green/teal "
-                            "and differ from the body.\n"
-                            "Answer YES only if you are confident the sleeves are green/teal "
-                            "and contrast with the body. If unsure or if it is any other "
+                            "piping, collars, cuffs only, the background, grass, or a shirt "
+                            "whose whole body is green. The SLEEVE FABRIC itself must be "
+                            "green/teal and differ from the body colour.\n"
+                            "Answer YES if at least one sleeve is clearly green/teal and "
+                            "contrasts with the body. If unsure, or if it is any other "
                             "pattern, answer NO. Reply with exactly YES or NO."
                         ),
                     },
