@@ -56,3 +56,6 @@ r = subprocess.run(
     capture_output=True, text=True, timeout=25,
 )
 print("Time-rapport sendt:", '"ok":true' in (r.stdout or ""))
+print(f"DEBUG stats: all_runs={s.get('all_runs')} all_searches={s.get('all_searches')} "
+      f"day_runs={s.get('day_runs')} day_searches={s.get('day_searches')} "
+      f"stats.json finnes={os.path.exists('stats.json')}")
