@@ -458,33 +458,17 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     except Exception:
         pass
 
-    # ── Time-rapport (heartbeat) ────────────────────────────────────────
+    # Lagre siste kjente helse/annonse-tall så :45-rapporten kan vise dem.
     try:
-        _hb_path = "heartbeat_state.json"
-        try:
-            _last = _json.load(open(_hb_path)).get("ts", 0)
-        except Exception:
-            _last = 0
-        if _time.time() - _last >= 3300:   # ~55 min
-            n_dead = len(dead)
-            health_line = ("✅ alle kilder OK" if n_dead == 0
-                           else f"⚠️ {n_dead} nede: " + ", ".join(sorted(dead)))
-            tg.send_text(
-                "🔍 <b>Stabæk-bot – timesjekk</b>\n"
-                f"📡 {len(health)} kilder · {health_line}\n"
-                "\n<b>I dag:</b> "
-                f"{stats['day_runs']} runder · {stats['day_searches']:,} søk · "
-                f"{stats['day_hits']} treff\n"
-                "<b>All-time:</b> "
-                f"{stats['all_runs']:,} runder · {stats['all_searches']:,} søk · "
-                f"{stats['all_hits']} treff\n"
-                f"📋 {total:,} annonser i basen · 🛒 3 kjøp\n"
-                "<i>Boten lever og jakter. Du varsles straks noe dukker opp.</i>"
-            )
-            _json.dump({"ts": _time.time()}, open(_hb_path, "w"))
-    except Exception as exc:
-        logger.debug("Heartbeat feilet: %s", exc)
+        stats["last_sources"] = len(health)
+        stats["last_dead"]    = sorted(dead)
+        stats["last_total"]   = total
+        _json.dump(stats, open(_stats_path, "w"))
+    except Exception:
+        pass
 
+    # NB: selve time-rapporten sendes av egen jobb kl :45 (hourly_stats.py),
+    # ikke herfra – da kommer den presist hver time i stedet for tilfeldig.
     return total_new
 
 

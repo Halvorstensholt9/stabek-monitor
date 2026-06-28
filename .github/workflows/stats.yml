@@ -1,0 +1,36 @@
+name: Stabæk Time-rapport (kl :45)
+
+# Sender statistikk til Telegram hvert hele time, minutt 45.
+on:
+  schedule:
+    - cron: "45 * * * *"
+  workflow_dispatch:
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer (lett)
+        run: pip install pyyaml
+      # Kun LESE cachen (restore) – skriver aldri, så ingen race med søke-jobbene.
+      - name: Hent stats-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            seen_ads.db
+            stats.json
+          key: stabek-db-x   # treffer aldri eksakt → bruker restore-keys
+          restore-keys: |
+            stabek-db-
+      - name: Send time-rapport
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cp config.template.yaml config.yaml
+          python hourly_stats.py
