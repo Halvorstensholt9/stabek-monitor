@@ -1,28 +1,26 @@
 """
 Cult Kits – britisk vintage-draktbutikk (cultkits.com).
 Shopify-butikk: bruker /products.json med lokal nøkkelordsfiltrering.
-Bruker httpx+HTTP/2 for å omgå Cloudflare-blokkering.
+Bruker curl_cffi (Safari-impersonering) – httpx fikk 429 fra Cloudflare
+(verifisert 2026-06-28: httpx=429, curl_cffi safari17_0=200/250 produkter).
 """
 
 import logging
 from typing import Dict, List, Optional
 
-import httpx
+from curl_cffi import requests as cf
 
 logger = logging.getLogger(__name__)
 
 _BASE         = "https://www.cultkits.com"
 _PRODUCTS_URL = f"{_BASE}/products.json"
-_HEADERS      = {
-    "User-Agent": "Mozilla/5.0 (compatible; DraktMonitor/1.0)",
-}
 
 _product_cache: List[dict] = []
 
 
 class CultKitsScraper:
     def __init__(self):
-        self.client = httpx.Client(http2=True, headers=_HEADERS, timeout=25)
+        self.client = cf.Session(impersonate="safari17_0", timeout=25)
 
     def search(self, keyword: str) -> List[Dict]:
         global _product_cache
