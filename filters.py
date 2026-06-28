@@ -31,13 +31,27 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     """
     text = _text(ad)
 
+    # ── 0. Etterlysninger («ønskes kjøpt») er IKKE til salgs ────────────
+    # Funn 2026-06-28: «Stabæk drakt med grønn arm, 3000 kr» SÅ ut som
+    # gralen til salgs, men var en KJØPER som lette etter den. Slike
+    # annonser skal ikke varsles som funn – du kan ikke kjøpe dem.
+    _WANTED = (
+        "ønskes kjøpt", "ønskes kjøp", "ønskes byttet", "ønskes:",
+        "på jakt etter", "jakter på", "ser etter en", "leter etter en",
+        "ønsker å kjøpe", "vil kjøpe", "kjøpes!", "kjøpes.", "kjøpes ",
+        "wanted", "want to buy", "wtb", "looking for", "in search of",
+    )
+    if any(w in text for w in _WANTED):
+        return False, 0, "etterlysning (noen vil KJØPE, ikke selge)"
+
     # ── 1. Required term (inkl. vanlige skrivfeil) ───────────────────────
     # Kun navn som er SÅ unike at de nesten garantert peker på Stabæk.
     # Vanlige etternavn (Kennedy, Riseth, Thorstvedt, Bjørnebye osv.) er fjernet
     # fordi de gir false positives på Liverpool-, Norge- og Kongsvinger-drakter.
     # Unike spillernavn – peker nesten garantert på Stabæk alene.
     PLAYER_NAMES = {
-        "allanzinho",       # brasiliansk – ekstremt unik Stabæk-legende
+        "alanzinho",        # brasiliansk legende – VANLIGSTE stavemåte (enkel-L)
+        "allanzinho",       # alternativ stavemåte (dobbel-L)
         "nannskog",         # Martin Nannskog – svært Stabæk-spesifikk
         "kjønsberg",        # Rune Kjønsberg
         "kjoensberg",       # skrivemåte uten æ
@@ -313,6 +327,10 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
             if not reasons:
                 reason_str = "Stabæk-drakt (moderne)"
             return True, max(score, 1), reason_str
+        if _has_player:
+            # Unikt spillernavn (f.eks. Alanzinho) uten eksplisitt drakt-ord
+            # er nesten garantert en drakt/spiller-gjenstand – varsle.
+            return True, max(score, 2), reason_str if reasons else "Stabæk-spiller"
         return False, 0, "ikke en Stabæk-drakt"
 
     return True, score, reason_str
