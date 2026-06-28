@@ -22,18 +22,20 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_CACHE_DB  = "image_cache.db"
+# v2: gammel image_cache.db var full av falske positive (farge-only).
+# Nytt filnavn = tom cache → alt re-analyseres med Vision som dommer.
+_CACHE_DB  = "image_cache_v2.db"
 _API_KEY   = os.environ.get("ANTHROPIC_API_KEY", "")
 _MODEL     = "claude-haiku-4-5"
 
 # Fargekalibrering – Stabæk-grønnen er teal/turkis (H≈179°, RGB≈30,208,207)
 # Innstillingene er bevisst romslige for å tåle skygger, dårlig lys og eldre bilder.
 # Testet: holder seg over terskel ned til ~15 % lysstyrke (ekstremt mørke bilder).
-_HUE_LOW   = 80    # nedre grense: fanger gul-grønn/lime og ren grønn
-_HUE_HIGH  = 210   # øvre grense: fanger teal, turkis og blå-grønn
-_SAT_MIN   = 0.15  # lavt nok til å fange skyggepartier og eldre/falmede drakter
-_VAL_MIN   = 0.08  # lavt nok til å fange svært mørke skyggepartier
-_THRESHOLD = 0.025 # minst 2.5 % av pikslene må treffe (økt fra 1.5 % for å unngå gress-bakgrunn)
+_HUE_LOW   = 90    # nedre grense: ren grønn (IKKE gul/lime under 90)
+_HUE_HIGH  = 185   # øvre grense: teal/turkis (IKKE rent blått over 185)
+_SAT_MIN   = 0.25  # må være en tydelig grønn, ikke en blass gråtone/skygge
+_VAL_MIN   = 0.15  # ikke nesten-svarte piksler
+_THRESHOLD = 0.04  # minst 4 % av pikslene må treffe (forfilter; Vision bekrefter)
 _SCAN_TOP  = 0.75  # analyser bare øverste 75 % av bildet – kutter bort gressbakgrunn
 
 
@@ -166,9 +168,18 @@ def _vision_detect_green(img_bytes: bytes, content_type: str) -> bool:
                     {
                         "type": "text",
                         "text": (
-                            "Football shirt product photo. "
-                            "Does the shirt have any GREEN sleeve(s) or GREEN arm panel(s)? "
-                            "Answer YES or NO only."
+                            "This is a product photo of a football/soccer shirt. "
+                            "I am looking for ONE very specific feature: the SLEEVES "
+                            "(the arm fabric) must be a distinct GREEN or TEAL/turquoise "
+                            "colour that clearly CONTRASTS with the main body/torso of "
+                            "the shirt (e.g. white or blue body with green arms).\n"
+                            "Do NOT count: green logos, sponsors, numbers, text, trim, "
+                            "piping, collars, the background, grass, or a shirt that is "
+                            "entirely one colour. The SLEEVE FABRIC itself must be green/teal "
+                            "and differ from the body.\n"
+                            "Answer YES only if you are confident the sleeves are green/teal "
+                            "and contrast with the body. If unsure or if it is any other "
+                            "pattern, answer NO. Reply with exactly YES or NO."
                         ),
                     },
                 ],
@@ -206,19 +217,26 @@ def has_green_sleeve(image_url: str) -> bool:
         logger.debug("Bilde-nedlasting feilet %s: %s", image_url[:60], exc)
         return False
 
-    # 3. Fargedeteksjon (alltid tilgjengelig)
-    result = _color_detect_green(img_bytes)
+    # 3. Fargedeteksjon = billig FORFILTER (ikke fasit). Sier den nei, er det
+    #    nesten sikkert ingen grønn erme → vi sparer et Vision-kall.
+    color_hint = _color_detect_green(img_bytes)
 
-    # 4. Claude Vision som ekstra bekreftelse hvis fargedeteksjon er usikker
-    #    (kun hvis API-nøkkel er satt)
-    if not result and _API_KEY:
-        result = _vision_detect_green(img_bytes, content_type)
+    # 4. Claude Vision er DOMMEREN. Et grønt piksel-treff betyr ingenting før
+    #    Vision har bekreftet at det faktisk er ERMENE som er grønne/teal og
+    #    kontrasterer med kroppen. Dette dreper de falske positive («GRØNN ARM»
+    #    på ting som ikke er det). Uten API-nøkkel faller vi tilbake på det
+    #    svake fargesignalet alene.
+    if _API_KEY:
+        result = _vision_detect_green(img_bytes, content_type) if color_hint else False
+    else:
+        result = color_hint
 
     _set_cached(image_url, result)
     logger.info(
-        "🖼 Bildeanalyse: %s → %s",
+        "🖼 Bildeanalyse: %s → farge=%s, dom=%s",
         image_url.split("/")[-1][:50],
-        "🟢 GRØNN ERM!" if result else "ingen grønn erm",
+        "grønn" if color_hint else "nei",
+        "🟢 GRØNN ERM (bekreftet)" if result else "ingen grønn erm",
     )
     return result
 

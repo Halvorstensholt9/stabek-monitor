@@ -254,10 +254,10 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
         # Skill den fra moderne grønne Stabæk-drakter med egen topp-alarm.
         if has_vintage_year:
             score += 20
-            reasons.append("🟢🏆 VINTAGE GRØNN ARM (GRALEN!)")
+            reasons.append("🟢🏆 MULIG VINTAGE GRØNN ARM – sjekk bildet!")
         else:
             score += 10
-            reasons.append("🟢 GRØNNE ERMER")
+            reasons.append("🟢 mulig grønne ermer – sjekk bildet")
     elif has_green:
         score += 3
         reasons.append("grønn farge")

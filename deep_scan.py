@@ -373,7 +373,7 @@ def get_stats(db: Database) -> Dict:
 
     # ── Bilde-cache ─────────────────────────────────────────────────────────
     try:
-        conn = sqlite3.connect("image_cache.db")
+        conn = sqlite3.connect("image_cache_v2.db")
         row = conn.execute(
             "SELECT COUNT(*), COALESCE(SUM(has_green),0) FROM image_cache"
         ).fetchone()

@@ -57,7 +57,7 @@ def main():
     # ── Bilde-cache ───────────────────────────────────────────────────────────
     images_analyzed = images_green = 0
     try:
-        conn2 = sqlite3.connect("image_cache.db")
+        conn2 = sqlite3.connect("image_cache_v2.db")
         row = conn2.execute(
             "SELECT COUNT(*), COALESCE(SUM(has_green),0) FROM image_cache"
         ).fetchone()

@@ -30,7 +30,7 @@ jobs:
         with:
           path: |
             seen_ads.jsonl
-            image_cache.db
+            image_cache_v2.db
             health_state.json
             heartbeat_state.json
             stats.json
