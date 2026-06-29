@@ -487,6 +487,10 @@ def main():
     parser.add_argument("--once", action="store_true",
                         help="Kjør én full runde + Draktgata-sjekk og avslutt "
                              "(brukes av GitHub Actions / cron i skyen)")
+    parser.add_argument("--loop-minutes", type=int, default=0,
+                        help="Sky-løkke: sjekk hvert intervall i N minutter, så "
+                             "avslutt. Omgår GitHubs struping av hyppig cron – "
+                             "én time-cron dekker ~55 min med 10-min-sjekker.")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -510,6 +514,8 @@ def main():
     # Hvis dedup-lageret er TOMT (helt ny cache), ville en normal runde
     # varslet HELE eksisterende inventar. Vi kjører i stedet én STILLE
     # runde som bare markerer alt som sett, uten å varsle.
+    # Bevar ekte sendere så løkke-modus kan gjenopprette dem etter prime-runden.
+    _orig_senders = (tg.send_ad, tg.send_text, tg.send_draktgata_alarm)
     if db.was_empty:
         logger.info("Tomt lager – kjører STILLE re-priming (ingen varsler).")
         # Nøytraliser alle utsendinger denne kjøringen
@@ -553,6 +559,35 @@ def main():
         except Exception as exc:
             logger.error("Draktgata-sjekk feilet: %s", exc)
         logger.info("Runde ferdig (--once): %d nye treff.", hits)
+        return
+
+    if args.loop_minutes:
+        # Sky-løkke: GitHub struper hyppig cron (*/10 → ~9 runder/døgn).
+        # Én time-cron som kjører denne løkka i ~55 min gir ~6 sjekker/time
+        # uten å stole på cron-frekvensen. Cachen lagres når jobben avsluttes.
+        import time as _t
+        # Hver runde tar allerede ~13 min (Playwright/Tise + 23 kilder), så
+        # en kort pause mellom holder ~15-min-kadens uten å hamre kildene.
+        _SLEEP_SEC = 120
+        deadline = _t.monotonic() + args.loop_minutes * 60
+        logger.info("── SKY-LØKKE: kontinuerlige runder i %d min (~%ds pause) ──",
+                    args.loop_minutes, _SLEEP_SEC)
+        first = True
+        while True:
+            try:
+                run_check(cfg, db, tg)
+                run_draktgata_fastcheck(cfg, db, tg)
+            except Exception as exc:
+                logger.error("Løkke-runde feilet: %s", exc)
+            if first:
+                # Etter en evt. stille re-priming: gjenopprett ekte sendere
+                # så resten av løkka varsler normalt.
+                tg.send_ad, tg.send_text, tg.send_draktgata_alarm = _orig_senders
+                first = False
+            if _t.monotonic() >= deadline:
+                break
+            _t.sleep(_SLEEP_SEC)
+        logger.info("Sky-løkke ferdig (%d min).", args.loop_minutes)
         return
 
     if args.test:

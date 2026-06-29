@@ -4,7 +4,11 @@ name: Stabæk Dypsøk (sky)
 # Kjører hver 3. time, i tillegg til det vanlige 10-min-søket.
 on:
   schedule:
-    - cron: "20 */3 * * *"     # hver 3. time, 20 min over
+    # Monitor-jobben kjører nå en 55-min løkke nesten hele timen (samme
+    # concurrency-gruppe), så dypsøket flyttet til ÉN gang daglig (03:30 UTC)
+    # for å unngå at de blokkerer hverandre. Den brede keyword-dekningen
+    # (~190 søk) er supplement; selve freshness dekkes av time-løkka.
+    - cron: "30 3 * * *"
   workflow_dispatch:
 
 # Samme gruppe som vanlig søk – deler dedup-cache, må aldri overlappe.

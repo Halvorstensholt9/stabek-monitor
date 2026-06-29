@@ -4,7 +4,11 @@ name: Stabæk Monitor (sky)
 # Cron hvert 15. minutt (GitHub kan forsinke noen min under last).
 on:
   schedule:
-    - cron: "*/10 * * * *"     # hver 10. min (GitHub kan forsinke noe)
+    # GitHub struper hyppig cron (*/10 ga i praksis bare ~9 runder/døgn).
+    # Time-cron honoreres langt bedre. Jobben kjører selv en intern løkke i
+    # 55 min (se --loop-minutes), så vi får ~3–4 runder pr time-fyring uten
+    # å stole på cron-frekvensen. :05 unngår GitHubs last på toppen av timen.
+    - cron: "5 * * * *"
   workflow_dispatch:   # lar deg kjøre manuelt fra Actions-fanen
 
 # Hindrer at to kjøringer overlapper (ville gitt dobbel-varsler)
@@ -17,7 +21,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
 
@@ -52,4 +56,4 @@ jobs:
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           cp config.template.yaml config.yaml
-          python monitor.py --once
+          python monitor.py --loop-minutes 55
