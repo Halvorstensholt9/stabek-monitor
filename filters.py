@@ -35,10 +35,11 @@ def evaluate(ad: Dict, cfg: Dict) -> Tuple[bool, int, str]:
     # Funn 2026-06-28: «Stabæk drakt med grønn arm, 3000 kr» SÅ ut som
     # gralen til salgs, men var en KJØPER som lette etter den. Slike
     # annonser skal ikke varsles som funn – du kan ikke kjøpe dem.
+    # NB: IKKE bruk bare «kjøpes» – det matcher selgeres «kan kjøpes nå».
     _WANTED = (
-        "ønskes kjøpt", "ønskes kjøp", "ønskes byttet", "ønskes:",
+        "ønskes",            # «drakt ønskes», «ønskes!», «ønskes kjøpt» – alltid kjøper
+        "ønsker å kjøpe", "ønsker kjøp", "vil kjøpe", "ønskes kjøpt",
         "på jakt etter", "jakter på", "ser etter en", "leter etter en",
-        "ønsker å kjøpe", "vil kjøpe", "kjøpes!", "kjøpes.", "kjøpes ",
         "wanted", "want to buy", "wtb", "looking for", "in search of",
     )
     if any(w in text for w in _WANTED):
