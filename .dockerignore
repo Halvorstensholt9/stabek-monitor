@@ -1,0 +1,16 @@
+# Hold hemmeligheter og lokale filer UTE av Docker-bildet
+.git
+.github
+__pycache__/
+*.pyc
+config.yaml          # ekte Telegram-nøkler – settes som miljøvariabler i stedet
+seen_ads.jsonl
+seen_ads.db*
+image_cache*.db
+*.db
+.db_was_reset
+health_state.json
+heartbeat_state.json
+stats.json
+scratchpad/
+*.log
