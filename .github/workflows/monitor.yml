@@ -5,9 +5,11 @@ name: Stabæk Monitor (sky)
 on:
   schedule:
     # GitHub struper hyppig cron (*/10 ga i praksis bare ~9 runder/døgn).
-    # Time-cron honoreres langt bedre. Jobben kjører selv en intern løkke i
-    # 55 min (se --loop-minutes), så vi får ~3–4 runder pr time-fyring uten
-    # å stole på cron-frekvensen. :05 unngår GitHubs last på toppen av timen.
+    # Løsning: hver jobb kjører en intern løkke i ~5 TIMER (se --loop-minutes),
+    # og time-cronen + concurrency-køen sørger for uavbrutt overtakelse: når
+    # en 5-timers jobb slutter, starter den ventende time-fyringen umiddelbart.
+    # = tilnærmet kontinuerlig drift uten å stole på cron-frekvensen.
+    # :05 unngår GitHubs last på toppen av timen.
     - cron: "5 * * * *"
   workflow_dispatch:   # lar deg kjøre manuelt fra Actions-fanen
 
@@ -21,7 +23,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 340   # 5-timers løkke + margin (GitHub hard-grense er 6t)
     steps:
       - uses: actions/checkout@v4
 
@@ -49,11 +51,11 @@ jobs:
           restore-keys: |
             stabek-db-
 
-      - name: Kjør én runde
+      - name: Kjør 5-timers løkke
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           cp config.template.yaml config.yaml
-          python monitor.py --loop-minutes 55
+          python monitor.py --loop-minutes 300

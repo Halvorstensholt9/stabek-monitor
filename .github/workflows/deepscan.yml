@@ -3,12 +3,11 @@ name: Stabæk Dypsøk (sky)
 # Stort dypsøk – alle kilder × ~190 søkeord + eBay-varianter.
 # Kjører hver 3. time, i tillegg til det vanlige 10-min-søket.
 on:
-  schedule:
-    # Monitor-jobben kjører nå en 55-min løkke nesten hele timen (samme
-    # concurrency-gruppe), så dypsøket flyttet til ÉN gang daglig (03:30 UTC)
-    # for å unngå at de blokkerer hverandre. Den brede keyword-dekningen
-    # (~190 søk) er supplement; selve freshness dekkes av time-løkka.
-    - cron: "30 3 * * *"
+  # Monitor-jobben kjører nå en NÆR-KONTINUERLIG 5-timers løkke (samme
+  # concurrency-gruppe), så et fast dypsøk-schedule ville bare stå i kø
+  # eller blokkere monitoren. Den brede keyword-dekningen (~190 søk) er
+  # uansett supplement – freshness dekkes av den kontinuerlige løkka.
+  # Dypsøket beholdes som MANUELT (kjør fra Actions-fanen ved behov).
   workflow_dispatch:
 
 # Samme gruppe som vanlig søk – deler dedup-cache, må aldri overlappe.
