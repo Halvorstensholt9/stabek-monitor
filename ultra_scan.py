@@ -173,22 +173,11 @@ def _run_source(name, scraper_fn, pause):
     return out
 
 
-def main():
+def run_deep(cfg, db, tg, fc):
+    """Kjør det ultra-dype søket med et DELT db/tg. Kalles fra monitor-løkka
+    hver 3.–4. time (samme dedup-lager = ingen gjentakelser) og av main()
+    ved manuell/standalone kjøring."""
     import os
-    cfg = yaml.safe_load(open("config.yaml", encoding="utf-8"))
-    db = Database(cfg["database"]["path"])
-    # Miljøvariabler overstyrer config (sky-deploy med GitHub Secrets)
-    token   = os.environ.get("TELEGRAM_BOT_TOKEN") or cfg["telegram"]["bot_token"]
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")   or cfg["telegram"]["chat_id"]
-    tg = Telegram(token, chat_id)
-    fc = cfg["filters"]
-
-    # Stille re-priming hvis lageret er tomt (ny cache) – ellers ville
-    # dypsøket varslet hele eksisterende inventar på én gang.
-    if db.was_empty:
-        tg.send_ad   = lambda *a, **k: None
-        tg.send_text = lambda *a, **k: None
-
     # (navn, scraper-funksjon, pause-mellom-søk)
     sources = [
         ("finn",        FinnScraper().search,             3.0),
@@ -326,6 +315,22 @@ def main():
     tg.send_text("\n".join(lines))
     logger.info("Rapport sendt til Telegram. Sent=%d, dedup=%d, filt=%d",
                 sent, skipped_old, skipped_filt)
+
+
+def main():
+    """Standalone/manuell kjøring: bygg eget db/tg og kjør dypsøket."""
+    import os
+    cfg = yaml.safe_load(open("config.yaml", encoding="utf-8"))
+    db = Database(cfg["database"]["path"])
+    token   = os.environ.get("TELEGRAM_BOT_TOKEN") or cfg["telegram"]["bot_token"]
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")   or cfg["telegram"]["chat_id"]
+    tg = Telegram(token, chat_id)
+    fc = cfg["filters"]
+    # Stille re-priming hvis lageret er tomt (ny cache)
+    if db.was_empty:
+        tg.send_ad   = lambda *a, **k: None
+        tg.send_text = lambda *a, **k: None
+    run_deep(cfg, db, tg, fc)
 
 
 if __name__ == "__main__":

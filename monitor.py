@@ -565,13 +565,25 @@ def main():
         # Sky-løkke: GitHub struper hyppig cron (*/10 → ~9 runder/døgn).
         # Én time-cron som kjører denne løkka i ~55 min gir ~6 sjekker/time
         # uten å stole på cron-frekvensen. Cachen lagres når jobben avsluttes.
-        import time as _t
+        import time as _t, json as _json
         # Hver runde tar allerede ~13 min (Playwright/Tise + 23 kilder), så
         # en kort pause mellom holder ~15-min-kadens uten å hamre kildene.
         _SLEEP_SEC = 120
         deadline = _t.monotonic() + args.loop_minutes * 60
-        logger.info("── SKY-LØKKE: kontinuerlige runder i %d min (~%ds pause) ──",
-                    args.loop_minutes, _SLEEP_SEC)
+
+        # ── Dypsøk hver 3,5 time (delt dedup = ingen gjentakelser) ──────
+        _DEEP_SEC   = int(3.5 * 3600)
+        _DEEP_STATE = "deep_state.json"
+        try:
+            _last_deep = _json.load(open(_DEEP_STATE)).get("last_deep", 0)
+        except Exception:
+            # Fersk cache: ikke kjør dypsøk rett etter stille re-priming –
+            # start nedtellingen nå. Ellers (eksisterende lager) la det gå snart.
+            _last_deep = _t.time() if db.was_empty else 0
+
+        logger.info("── SKY-LØKKE: kontinuerlige runder i %d min (~%ds pause) "
+                    "+ dypsøk hver %.1f t ──", args.loop_minutes, _SLEEP_SEC,
+                    _DEEP_SEC / 3600)
         first = True
         while True:
             try:
@@ -584,6 +596,19 @@ def main():
                 # så resten av løkka varsler normalt.
                 tg.send_ad, tg.send_text, tg.send_draktgata_alarm = _orig_senders
                 first = False
+            # Dypsøk når det er gått ≥3,5 t (aldri i den stille prime-runden)
+            if not db.was_empty and (_t.time() - _last_deep) >= _DEEP_SEC:
+                try:
+                    from ultra_scan import run_deep
+                    logger.info("── Starter periodisk DYPSØK ──")
+                    run_deep(cfg, db, tg, cfg["filters"])
+                except Exception as exc:
+                    logger.error("Dypsøk feilet: %s", exc)
+                _last_deep = _t.time()
+                try:
+                    _json.dump({"last_deep": _last_deep}, open(_DEEP_STATE, "w"))
+                except Exception:
+                    pass
             if _t.monotonic() >= deadline:
                 break
             _t.sleep(_SLEEP_SEC)
