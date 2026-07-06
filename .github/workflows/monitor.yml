@@ -12,6 +12,11 @@ on:
     # :05 unngår GitHubs last på toppen av timen.
     - cron: "5 * * * *"
   workflow_dispatch:   # lar deg kjøre manuelt fra Actions-fanen
+    inputs:
+      loop_minutes:
+        description: "Hvor mange minutter løkka skal kjøre (lav verdi = rask test)"
+        default: "300"
+        required: false
 
 # Hindrer at to kjøringer overlapper (ville gitt dobbel-varsler)
 # Samme gruppe som dypsøket – de deler dedup-cache og må ALDRI kjøre
@@ -59,4 +64,4 @@ jobs:
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           cp config.template.yaml config.yaml
-          python monitor.py --loop-minutes 300
+          python monitor.py --loop-minutes ${{ github.event.inputs.loop_minutes || '300' }}
