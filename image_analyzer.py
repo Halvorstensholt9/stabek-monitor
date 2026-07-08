@@ -142,6 +142,36 @@ def _color_detect_green(img_bytes: bytes) -> bool:
         return False
 
 
+def grail_color_candidate(img_bytes: bytes) -> bool:
+    """Billig forfilter for BILDE-FØRST-jakten på generiske titler:
+    har bildet BÅDE en tydelig BLÅ flate (kroppen) OG en grønn/teal flate
+    (armen)? Det er grålens fargesignatur. Sparer Vision-kall på alt annet.
+    """
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        w, h = img.size
+        px = img.load()
+        step = 8
+        blue = green = total = 0
+        for x in range(0, w, step):
+            for y in range(0, int(h * 0.85), step):
+                r, g, b = px[x, y]
+                hh, s, v = _rgb_to_hsv(r, g, b)
+                total += 1
+                if s >= 0.30 and v >= 0.15:
+                    if 90 <= hh <= 190:       # grønn/teal
+                        green += 1
+                    elif 195 <= hh <= 255:    # blå/marineblå
+                        blue += 1
+        if not total:
+            return False
+        # Blå må dominere kroppen (≥6 %), grønn/teal må finnes (≥2 %).
+        return (blue / total) >= 0.06 and (green / total) >= 0.02
+    except Exception:
+        return False
+
+
 # ── Claude Vision (valgfri, mer presis) ──────────────────────────────────────
 
 # Terskel: ≥ denne prosenten regnes som «grønn arm / mulig gral».

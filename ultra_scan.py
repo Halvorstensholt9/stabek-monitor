@@ -21,7 +21,7 @@ import yaml
 from database       import Database
 from filters         import evaluate
 from notifier        import Telegram
-from image_analyzer  import has_green_sleeve, grail_probability
+from image_analyzer  import has_green_sleeve, grail_probability, grail_color_candidate
 
 from scrapers.finn                  import FinnScraper
 from scrapers.ebay                  import EbayScraper
@@ -171,6 +171,74 @@ def _run_source(name, scraper_fn, pause):
             time.sleep(pause)
     logger.info("[%s] ferdig: %d treff totalt over %d søk", name, len(out), len(QUERIES))
     return out
+
+
+def grail_image_hunt(db, tg, vision_budget=40, download_cap=250):
+    """BILDE-FØRST på GENERISKE titler: fanger grålen der selgeren ikke nevner
+    Stabæk. Søker generiske drakt-ord på norske markedsplasser, kjører en billig
+    fargesignatur-sjekk (blå kropp + grønn/teal arm) på bildene, og bruker Vision
+    kun på de som passerer (hardt tak = vision_budget). Alt ≥40 % varsles, selv
+    om tittelen er generisk. Kostnadskontroll: maks vision_budget Vision-kall og
+    download_cap bilde-nedlastinger pr kjøring.
+    """
+    import httpx as _httpx
+    import image_analyzer as _ia
+    queries = [
+        "adidas fotballdrakt langermet", "blå stripet fotballdrakt",
+        "vintage adidas fotballdrakt", "retro fotballdrakt adidas",
+        "blå svart stripet drakt", "fotballdrakt grønn arm",
+        "gammel fotballdrakt adidas", "fotballtrøye langermet blå",
+    ]
+    srcs = [("finn", FinnScraper().search), ("tise", TiseScraper().search)]
+    seen = set()
+    downloaded = used = hits = 0
+    tg.send_text("🔎 <i>Bilde-jakt på generiske titler startet (fanger grålen der "
+                 "selgeren ikke nevner Stabæk)…</i>")
+    for sname, fn in srcs:
+        for q in queries:
+            if used >= vision_budget or downloaded >= download_cap:
+                break
+            try:
+                ads = fn(q)
+            except Exception:
+                continue
+            for ad in ads:
+                if used >= vision_budget or downloaded >= download_cap:
+                    break
+                url = ad.get("image_url")
+                aid = str(ad.get("id", ""))
+                src = ad.get("source", sname)
+                if not url or not aid or (src, aid) in seen:
+                    continue
+                seen.add((src, aid))
+                if db.is_seen(aid, src):        # allerede håndtert
+                    continue
+                try:
+                    b = _httpx.get(url, timeout=15, follow_redirects=True).content
+                except Exception:
+                    continue
+                downloaded += 1
+                if not _ia.grail_color_candidate(b):   # billig: blå+grønn?
+                    continue
+                used += 1
+                score = _ia.grail_probability(url)      # Vision (cachet)
+                if score >= 40:
+                    _u = (ad.get("url") or "").split("?")[0].split("#")[0].rstrip("/").lower()
+                    if _u and not db.check_and_mark("url_" + _u, "urldedup",
+                                                    ad.get("title", ""), ad.get("url", "")):
+                        continue
+                    if not db.check_and_mark(aid, src, ad.get("title", ""), ad.get("url", "")):
+                        continue
+                    ad["grail_pct"] = score
+                    tg.send_ad(ad, score=max(score // 10, 5),
+                               match_reason=f"🟢🏆 MULIG GRÅL via BILDE ~{score}% "
+                                            f"– generisk tittel «{ad.get('title','')[:40]}», sjekk!")
+                    hits += 1
+    logger.info("Grål-bildejakt: %d lastet ned, %d Vision-kall, %d treff",
+                downloaded, used, hits)
+    tg.send_text(f"🔎 <b>Bilde-jakt ferdig:</b> {downloaded} bilder sjekket, "
+                 f"{used} dyp-analysert, <b>{hits} mulige grål-treff</b>.")
+    return hits
 
 
 def run_deep(cfg, db, tg, fc):
@@ -327,6 +395,12 @@ def run_deep(cfg, db, tg, fc):
     tg.send_text("\n".join(lines))
     logger.info("Rapport sendt til Telegram. Sent=%d, dedup=%d, filt=%d",
                 sent, skipped_old, skipped_filt)
+
+    # ── BILDE-FØRST på generiske titler (fanger grålen der tittelen er blank) ──
+    try:
+        grail_image_hunt(db, tg)
+    except Exception as exc:
+        logger.error("Grål-bildejakt feilet: %s", exc)
 
 
 def main():
