@@ -152,14 +152,18 @@ _GRAIL_THRESHOLD = 40
 # dame/moderne Stabæk-drakter 5–15 %).
 _GRAIL_PROMPT = (
     "This is a product photo of a football/soccer shirt. I am hunting one specific "
-    "vintage/retro STABÆK (Stabæk IF/JF, Norwegian) shirt. Identifying features:\n"
-    "- BODY: blue and navy VERTICAL STRIPES (Inter-Milan-like).\n"
-    "- KEY: ONE sleeve is GREEN/teal while the OTHER sleeve is blue (an asymmetric "
-    "green arm), often with white adidas 3-stripes running down the green sleeve.\n"
-    "- Usually adidas, usually long-sleeve; gold Stabæk crest with '1912'.\n"
-    "Give the PROBABILITY from 0 to 100 that THIS shirt is that Stabæk blue-striped "
-    "ONE-GREEN-SLEEVE shirt. A blue/striped shirt WITHOUT any green sleeve = LOW "
-    "(under 30). A blue-striped shirt WITH one green/teal sleeve = HIGH (over 70). "
+    "STABÆK (Stabæk IF/JF, Norwegian) shirt that exists in several versions across "
+    "years. CONSTANT identifying features:\n"
+    "- BODY: blue and navy/black VERTICAL STRIPES (Inter-Milan-like).\n"
+    "- KEY FEATURE: ONE sleeve is GREEN or TEAL/turquoise while the OTHER sleeve is "
+    "blue/striped (an asymmetric green arm). The green sleeve is sometimes plain teal, "
+    "sometimes has white adidas 3-stripes down it.\n"
+    "- Maker adidas; gold/yellow Stabæk crest shield with '1912'.\n"
+    "VARIATIONS that still COUNT: short OR long sleeve; with or without a chest sponsor "
+    "(sponsors seen: K-bank, Nordea, Tindra); polo collar or v-neck.\n"
+    "Give the PROBABILITY 0 to 100 that THIS shirt is that Stabæk blue-striped shirt with "
+    "ONE green/teal sleeve. WITHOUT any green/teal sleeve = LOW (under 30). Blue-striped "
+    "WITH one green/teal sleeve = HIGH (over 75), even if short-sleeve or no sponsor. "
     "Ignore green logos/backgrounds/grass. Reply with ONLY an integer 0-100."
 )
 
