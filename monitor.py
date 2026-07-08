@@ -51,6 +51,8 @@ from scrapers.cultkits import CultKitsScraper
 from scrapers.oldfootballshirts import OldFootballShirtsScraper
 from scrapers.subito import SubitoScraper
 from scrapers.leboncoin import LeboncoinScraper
+from scrapers.olx import OLXScraper
+from scrapers.poshmark import PoshmarkScraper
 # from scrapers.facebook import FacebookScraper  # Aktiver når du er klar
 
 
@@ -311,6 +313,8 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     oldfs       = OldFootballShirtsScraper()
     subito      = SubitoScraper()
     leboncoin   = LeboncoinScraper()
+    olx         = OLXScraper()
+    poshmark    = PoshmarkScraper()
 
     # (navn, søkefunksjon, nøkkelordliste, pause_sek_mellom_søk)
     sources = [
@@ -348,6 +352,8 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         ("oldfootballshirts", oldfs.search,  s.get("oldfootballshirts_keywords", []), 2.0),
         ("subito",      subito.search,       s.get("subito_keywords",      []), 2.0),
         ("leboncoin",   leboncoin.search,    s.get("leboncoin_keywords",   []), 2.0),
+        ("olx",         olx.search,          s.get("olx_keywords",         []), 2.0),
+        ("poshmark",    poshmark.search,     s.get("poshmark_keywords",    []), 2.0),
     ]
 
     logger.info("══ Starter sjekk (%d kilder parallelt) ══", len(sources))

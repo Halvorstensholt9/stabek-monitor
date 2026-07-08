@@ -1025,6 +1025,18 @@ search:
     - "norway football shirt"
     - "maillot norvege"
 
+  # OLX (Polen/Øst-Europa) – offentlig API
+  olx_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "norway football shirt"
+
+  # Poshmark (USA)
+  poshmark_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "norway football shirt"
+
 filters:
   required_terms:
     - "stabæk"

@@ -49,6 +49,8 @@ from scrapers.kleinanzeigen          import KleinanzeigenScraper
 from scrapers.oldfootballshirts       import OldFootballShirtsScraper
 from scrapers.subito                   import SubitoScraper
 from scrapers.leboncoin                import LeboncoinScraper
+from scrapers.olx                       import OLXScraper
+from scrapers.poshmark                  import PoshmarkScraper
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
@@ -276,6 +278,8 @@ def run_deep(cfg, db, tg, fc):
         ("oldfootballshirts", OldFootballShirtsScraper().search, 2.0),
         ("subito",      SubitoScraper().search,           2.0),
         ("leboncoin",   LeboncoinScraper().search,        2.0),
+        ("olx",         OLXScraper().search,              2.0),
+        ("poshmark",    PoshmarkScraper().search,         2.0),
     ]
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",
