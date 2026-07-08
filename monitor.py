@@ -22,7 +22,7 @@ import yaml
 
 from database import Database
 from filters import evaluate
-from image_analyzer import has_green_sleeve
+from image_analyzer import has_green_sleeve, grail_probability
 from notifier import Telegram
 from scrapers.finn import FinnScraper
 from scrapers.ebay import EbayScraper
@@ -190,12 +190,12 @@ def _run_source(
             # er sjeldne nok til at vi trygt kan bildeanalysere alle.
             if (ad.get("image_url")
                     and (_is_stabæk_title or _has_player_in_title)):
-                if has_green_sleeve(ad["image_url"]):
-                    if not _desc:
-                        ad["description"] = "grønne ermer (funnet via bildeanalyse)"
-                    else:
-                        ad["description"] = _desc + " | grønne ermer (bildeanalyse)"
-                    logger.info("🟢 BILDE-TREFF grønne ermer: %s", ad.get("title"))
+                _p = grail_probability(ad["image_url"])
+                if _p >= 40:
+                    _note = f"🟢 grønn arm ~{_p}% (AI-bildeanalyse)"
+                    ad["description"] = _note if not _desc else _desc + " | " + _note
+                    ad["grail_pct"] = _p     # tilgjengelig for varsel-teksten
+                    logger.info("🟢 BILDE-TREFF grønn arm %d%%: %s", _p, ad.get("title"))
 
             keep, score, reason = evaluate(ad, filter_cfg)
             if keep:

@@ -43,10 +43,11 @@ _SCAN_TOP  = 0.75  # analyser bare øverste 75 % av bildet – kutter bort gress
 
 def _init_cache() -> None:
     conn = sqlite3.connect(_CACHE_DB)
+    # Lagrer nå en SANNSYNLIGHET 0–100 (grål-score) pr bilde, ikke bare ja/nei.
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS image_cache (
+        CREATE TABLE IF NOT EXISTS grail (
             url        TEXT PRIMARY KEY,
-            has_green  INTEGER NOT NULL,
+            score      INTEGER NOT NULL,
             checked_at TEXT DEFAULT (datetime('now'))
         )
     """)
@@ -54,24 +55,24 @@ def _init_cache() -> None:
     conn.close()
 
 
-def _get_cached(url: str) -> Optional[bool]:
+def _get_cached(url: str) -> Optional[int]:
     try:
         conn = sqlite3.connect(_CACHE_DB)
         row = conn.execute(
-            "SELECT has_green FROM image_cache WHERE url = ?", (url,)
+            "SELECT score FROM grail WHERE url = ?", (url,)
         ).fetchone()
         conn.close()
-        return bool(row[0]) if row is not None else None
+        return int(row[0]) if row is not None else None
     except Exception:
         return None
 
 
-def _set_cached(url: str, result: bool) -> None:
+def _set_cached(url: str, score: int) -> None:
     try:
         conn = sqlite3.connect(_CACHE_DB)
         conn.execute(
-            "INSERT OR REPLACE INTO image_cache (url, has_green) VALUES (?, ?)",
-            (url, int(result)),
+            "INSERT OR REPLACE INTO grail (url, score) VALUES (?, ?)",
+            (url, int(score)),
         )
         conn.commit()
         conn.close()
@@ -143,70 +144,64 @@ def _color_detect_green(img_bytes: bytes) -> bool:
 
 # ── Claude Vision (valgfri, mer presis) ──────────────────────────────────────
 
-def _vision_detect_green(img_bytes: bytes, content_type: str) -> bool:
-    """Bruker Claude Haiku Vision. Krever ANTHROPIC_API_KEY."""
+# Terskel: ≥ denne prosenten regnes som «grønn arm / mulig gral».
+_GRAIL_THRESHOLD = 40
+
+# Presis beskrivelse av gralen (verifisert mot Halvors referansebilder +
+# ekte annonser 2026-07: grønn-arm-drakter scoret 75–85 %, vanlige blå/
+# dame/moderne Stabæk-drakter 5–15 %).
+_GRAIL_PROMPT = (
+    "This is a product photo of a football/soccer shirt. I am hunting one specific "
+    "vintage/retro STABÆK (Stabæk IF/JF, Norwegian) shirt. Identifying features:\n"
+    "- BODY: blue and navy VERTICAL STRIPES (Inter-Milan-like).\n"
+    "- KEY: ONE sleeve is GREEN/teal while the OTHER sleeve is blue (an asymmetric "
+    "green arm), often with white adidas 3-stripes running down the green sleeve.\n"
+    "- Usually adidas, usually long-sleeve; gold Stabæk crest with '1912'.\n"
+    "Give the PROBABILITY from 0 to 100 that THIS shirt is that Stabæk blue-striped "
+    "ONE-GREEN-SLEEVE shirt. A blue/striped shirt WITHOUT any green sleeve = LOW "
+    "(under 30). A blue-striped shirt WITH one green/teal sleeve = HIGH (over 70). "
+    "Ignore green logos/backgrounds/grass. Reply with ONLY an integer 0-100."
+)
+
+
+def _vision_grail_score(img_bytes: bytes, content_type: str) -> int:
+    """Claude Vision → sannsynlighet 0–100 for at bildet er grål-drakta.
+    -1 hvis ingen API-nøkkel eller feil."""
     if not _API_KEY:
-        return False
+        return -1
     try:
+        import re as _re
         import anthropic
         img_b64 = base64.standard_b64encode(img_bytes).decode("utf-8")
         client  = anthropic.Anthropic(api_key=_API_KEY)
         msg = client.messages.create(
             model=_MODEL,
-            max_tokens=10,
+            max_tokens=8,
             messages=[{
                 "role": "user",
                 "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": content_type,
-                            "data": img_b64,
-                        },
-                    },
-                    {
-                        "type": "text",
-                        "text": (
-                            "This is a product photo of a football/soccer shirt. "
-                            "I am looking for ONE specific feature: at least ONE sleeve "
-                            "(the arm fabric) is a distinct GREEN or TEAL/turquoise colour "
-                            "that clearly CONTRASTS with the main body/torso of the shirt. "
-                            "The body is usually white or blue. It counts whether ONE arm "
-                            "or BOTH arms are green/teal.\n"
-                            "Do NOT count: green logos, sponsors, numbers, text, trim, "
-                            "piping, collars, cuffs only, the background, grass, or a shirt "
-                            "whose whole body is green. The SLEEVE FABRIC itself must be "
-                            "green/teal and differ from the body colour.\n"
-                            "Answer YES if at least one sleeve is clearly green/teal and "
-                            "contrasts with the body. If unsure, or if it is any other "
-                            "pattern, answer NO. Reply with exactly YES or NO."
-                        ),
-                    },
+                    {"type": "image", "source": {"type": "base64",
+                        "media_type": content_type, "data": img_b64}},
+                    {"type": "text", "text": _GRAIL_PROMPT},
                 ],
             }],
         )
-        return msg.content[0].text.strip().upper().startswith("YES")
+        m = _re.search(r"\d+", msg.content[0].text)
+        return min(100, int(m.group())) if m else -1
     except Exception as exc:
         logger.debug("Claude Vision feil: %s", exc)
-        return False
+        return -1
 
 
 # ── Hoved-funksjon ───────────────────────────────────────────────────────────
 
-def has_green_sleeve(image_url: str) -> bool:
-    """
-    Returnerer True hvis bildet viser en drakt med grønne ermer.
-    Bruker cache → fargedeteksjon → Claude Vision (hvis nøkkel finnes).
-    """
-    # 1. Cache
+def grail_probability(image_url: str) -> int:
+    """Sannsynlighet 0–100 for at bildet viser Stabæk grønn-arm-gralen.
+    Cache → fargeforfilter → Claude Vision. Uten API-nøkkel: grov 0/35 fra farge."""
     cached = _get_cached(image_url)
     if cached is not None:
-        logger.debug("🖼 Cache: %s → %s",
-                     image_url.split("/")[-1][:40], "grønn" if cached else "ikke grønn")
         return cached
 
-    # 2. Last ned bilde
     try:
         r = httpx.get(image_url, timeout=20, follow_redirects=True)
         r.raise_for_status()
@@ -216,30 +211,27 @@ def has_green_sleeve(image_url: str) -> bool:
             content_type = "image/jpeg"
     except Exception as exc:
         logger.debug("Bilde-nedlasting feilet %s: %s", image_url[:60], exc)
-        return False
+        return 0
 
-    # 3. Fargedeteksjon = billig FORFILTER (ikke fasit). Sier den nei, er det
-    #    nesten sikkert ingen grønn erme → vi sparer et Vision-kall.
+    # Billig fargeforfilter: ingen grønt i det hele tatt → svært lav sannsynlighet,
+    # spar Vision-kallet. Ellers la Vision gi presis score.
     color_hint = _color_detect_green(img_bytes)
-
-    # 4. Claude Vision er DOMMEREN. Et grønt piksel-treff betyr ingenting før
-    #    Vision har bekreftet at det faktisk er ERMENE som er grønne/teal og
-    #    kontrasterer med kroppen. Dette dreper de falske positive («GRØNN ARM»
-    #    på ting som ikke er det). Uten API-nøkkel faller vi tilbake på det
-    #    svake fargesignalet alene.
     if _API_KEY:
-        result = _vision_detect_green(img_bytes, content_type) if color_hint else False
+        score = _vision_grail_score(img_bytes, content_type) if color_hint else 5
+        if score < 0:                       # Vision feilet – fall tilbake på farge
+            score = 35 if color_hint else 5
     else:
-        result = color_hint
+        score = 35 if color_hint else 5     # ingen nøkkel: kun grovt fargesignal
 
-    _set_cached(image_url, result)
-    logger.info(
-        "🖼 Bildeanalyse: %s → farge=%s, dom=%s",
-        image_url.split("/")[-1][:50],
-        "grønn" if color_hint else "nei",
-        "🟢 GRØNN ERM (bekreftet)" if result else "ingen grønn erm",
-    )
-    return result
+    _set_cached(image_url, score)
+    logger.info("🖼 Grål-score: %s → %d%% (farge=%s)",
+                image_url.split("/")[-1][:50], score, "ja" if color_hint else "nei")
+    return score
+
+
+def has_green_sleeve(image_url: str) -> bool:
+    """Bakoverkompatibel: True hvis grål-sannsynligheten er ≥ terskel."""
+    return grail_probability(image_url) >= _GRAIL_THRESHOLD
 
 
 # Initialiser cache ved import

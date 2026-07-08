@@ -21,7 +21,7 @@ import yaml
 from database       import Database
 from filters         import evaluate
 from notifier        import Telegram
-from image_analyzer  import has_green_sleeve
+from image_analyzer  import has_green_sleeve, grail_probability
 
 from scrapers.finn                  import FinnScraper
 from scrapers.ebay                  import EbayScraper
@@ -267,9 +267,12 @@ def run_deep(cfg, db, tg, fc):
                 (any(t in _tlc for t in _STAB) and any(w in _tlc for w in _JERS))
                 or any(p in _tlc for p in _PLYR)
             ):
-                if has_green_sleeve(ad["image_url"]):
+                _p = grail_probability(ad["image_url"])
+                if _p >= 40:
                     desc = ad.get("description","").strip()
-                    ad["description"] = (desc + " | grønne ermer (bildeanalyse)").strip(" |")
+                    _note = f"🟢 grønn arm ~{_p}% (AI-bildeanalyse)"
+                    ad["description"] = (desc + " | " + _note).strip(" |")
+                    ad["grail_pct"] = _p
 
             keep, score, reason = evaluate(ad, fc)
             if not keep:
