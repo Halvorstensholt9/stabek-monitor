@@ -281,7 +281,10 @@ def run_draktgata_fastcheck(cfg: dict, db: Database, tg: Telegram) -> None:
 
 # ── Hoved-sjekk ───────────────────────────────────────────────────────────
 
-def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
+def run_check(cfg: dict, db: Database, tg: Telegram, fast_only: bool = False) -> int:
+    """fast_only=True hopper over de TREGE kildene (Tise/Playwright, websearch,
+    Facebook) så en runde tar ~2–4 min i stedet for ~13 – brukes for hyppige
+    hurtig-runder. Full runde (fast_only=False) tar med ALT + helsesjekk."""
     logger = logging.getLogger("monitor")
     s      = cfg["search"]
     fc     = cfg["filters"]
@@ -356,7 +359,14 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         ("poshmark",    poshmark.search,     s.get("poshmark_keywords",    []), 2.0),
     ]
 
-    logger.info("══ Starter sjekk (%d kilder parallelt) ══", len(sources))
+    # Hurtig-runde: dropp de TREGE kildene (Playwright/websøk) som drar ut
+    # runden fra ~3 til ~13 min. De dekkes av full runde hvert ~15. min.
+    if fast_only:
+        _SLOW = {"tise", "websearch", "facebook"}
+        sources = [x for x in sources if x[0] not in _SLOW]
+
+    logger.info("══ Starter %s (%d kilder parallelt) ══",
+                "HURTIG-sjekk" if fast_only else "full sjekk", len(sources))
     t0        = time.monotonic()
     total_new = 0
 
@@ -385,45 +395,48 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
     # ── Helsesjekk: varsle om DØDE kilder ───────────────────────────────
     # En kilde regnes som «nede» hvis ALLE søkeordene kastet exception,
     # eller hele kilden krasjet. (0 treff er normalt – kun feil teller.)
+    # Helsesjekk kjøres KUN på full runde – en hurtig-runde mangler de trege
+    # kildene, så å sjekke «nede» der ville gitt falske ned/opp-varsler.
     dead = set()
-    for src, h in health.items():
-        if h.get("crashed") or (h["kw_count"] > 0 and h["errors"] >= h["kw_count"]):
-            dead.add(src)
+    if not fast_only:
+        for src, h in health.items():
+            if h.get("crashed") or (h["kw_count"] > 0 and h["errors"] >= h["kw_count"]):
+                dead.add(src)
 
-    # Debounce via state-fil (ligger i actions/cache): varsle KUN ved endring.
-    import json as _json
-    _hs_path = "health_state.json"
-    try:
-        prev_dead = set(_json.load(open(_hs_path)))
-    except Exception:
-        prev_dead = set()
-
-    newly_dead   = dead - prev_dead          # gått ned siden sist
-    recovered    = prev_dead - dead          # kommet tilbake siden sist
-
-    if newly_dead:
-        logger.error("🔴 NYE DØDE KILDER: %s", ", ".join(newly_dead))
+        # Debounce via state-fil (ligger i actions/cache): varsle KUN ved endring.
+        import json as _json
+        _hs_path = "health_state.json"
         try:
-            tg.send_text(
-                "⚠️ <b>KILDE(R) NEDE</b>\n"
-                + "\n".join(f"🔴 {d}" for d in sorted(newly_dead))
-                + "\n\n<i>Svarte med feil på alle søk – sjekk om de har "
-                  "endret seg. Resten kjører normalt.</i>"
-            )
+            prev_dead = set(_json.load(open(_hs_path)))
+        except Exception:
+            prev_dead = set()
+
+        newly_dead   = dead - prev_dead          # gått ned siden sist
+        recovered    = prev_dead - dead          # kommet tilbake siden sist
+
+        if newly_dead:
+            logger.error("🔴 NYE DØDE KILDER: %s", ", ".join(newly_dead))
+            try:
+                tg.send_text(
+                    "⚠️ <b>KILDE(R) NEDE</b>\n"
+                    + "\n".join(f"🔴 {d}" for d in sorted(newly_dead))
+                    + "\n\n<i>Svarte med feil på alle søk – sjekk om de har "
+                      "endret seg. Resten kjører normalt.</i>"
+                )
+            except Exception:
+                pass
+        if recovered:
+            logger.info("🟢 GJENOPPRETTEDE KILDER: %s", ", ".join(recovered))
+            try:
+                tg.send_text("✅ <b>Kilde(r) oppe igjen:</b> "
+                             + ", ".join(sorted(recovered)))
+            except Exception:
+                pass
+
+        try:
+            _json.dump(sorted(dead), open(_hs_path, "w"))
         except Exception:
             pass
-    if recovered:
-        logger.info("🟢 GJENOPPRETTEDE KILDER: %s", ", ".join(recovered))
-        try:
-            tg.send_text("✅ <b>Kilde(r) oppe igjen:</b> "
-                         + ", ".join(sorted(recovered)))
-        except Exception:
-            pass
-
-    try:
-        _json.dump(sorted(dead), open(_hs_path, "w"))
-    except Exception:
-        pass
 
     # ── Flom-vakt utløst? ────────────────────────────────────────────────
     if _suppressed > 0:
@@ -480,13 +493,15 @@ def run_check(cfg: dict, db: Database, tg: Telegram) -> int:
         pass
 
     # Lagre siste kjente helse/annonse-tall så :45-rapporten kan vise dem.
-    try:
-        stats["last_sources"] = len(health)
-        stats["last_dead"]    = sorted(dead)
-        stats["last_total"]   = total
-        _json.dump(stats, open(_stats_path, "w"))
-    except Exception:
-        pass
+    # KUN på full runde (hurtig-runde har færre kilder → ville vist feil antall).
+    if not fast_only:
+        try:
+            stats["last_sources"] = len(health)
+            stats["last_dead"]    = sorted(dead)
+            stats["last_total"]   = total
+            _json.dump(stats, open(_stats_path, "w"))
+        except Exception:
+            pass
 
     # NB: selve time-rapporten sendes av egen jobb kl :45 (hourly_stats.py),
     # ikke herfra – da kommer den presist hver time i stedet for tilfeldig.
@@ -584,9 +599,12 @@ def main():
         # Én time-cron som kjører denne løkka i ~55 min gir ~6 sjekker/time
         # uten å stole på cron-frekvensen. Cachen lagres når jobben avsluttes.
         import time as _t, json as _json
-        # Hver runde tar allerede ~13 min (Playwright/Tise + 23 kilder), så
-        # en kort pause mellom holder ~15-min-kadens uten å hamre kildene.
-        _SLEEP_SEC = 120
+        # HURTIG-BANE: raske kilder (Finn, eBay, DBA, Vinted, Subito, Leboncoin,
+        # OLX, Poshmark ...) sjekkes ~hvert 3.–4. min. De TREGE (Tise/Playwright,
+        # websøk, Facebook) tas i en FULL runde hvert ~20. min. Kort pause mellom.
+        _SLEEP_SEC = 20
+        _FULL_SEC  = 20 * 60
+        _last_full = 0.0
         deadline = _t.monotonic() + args.loop_minutes * 60
 
         # ── Dypsøk hver 3,5 time (delt dedup = ingen gjentakelser) ──────
@@ -599,16 +617,20 @@ def main():
             # start nedtellingen nå. Ellers (eksisterende lager) la det gå snart.
             _last_deep = _t.time() if db.was_empty else 0
 
-        logger.info("── SKY-LØKKE: kontinuerlige runder i %d min (~%ds pause) "
-                    "+ dypsøk hver %.1f t ──", args.loop_minutes, _SLEEP_SEC,
-                    _DEEP_SEC / 3600)
+        logger.info("── SKY-LØKKE: hurtig-runder (~%ds pause), full runde hvert "
+                    "%d. min, dypsøk hver %.1f t ──", _SLEEP_SEC,
+                    _FULL_SEC // 60, _DEEP_SEC / 3600)
         first = True
         while True:
+            # Første runde = full (for stille re-priming + helse-baseline).
+            do_full = first or (_t.time() - _last_full) >= _FULL_SEC
             try:
-                run_check(cfg, db, tg)
+                run_check(cfg, db, tg, fast_only=not do_full)
                 run_draktgata_fastcheck(cfg, db, tg)
             except Exception as exc:
                 logger.error("Løkke-runde feilet: %s", exc)
+            if do_full:
+                _last_full = _t.time()
             if first:
                 # Etter en evt. stille re-priming: gjenopprett ekte sendere
                 # så resten av løkka varsler normalt.
