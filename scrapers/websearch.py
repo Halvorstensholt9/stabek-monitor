@@ -196,7 +196,12 @@ class WebSearchScraper:
         snippet_el = result.select_one(".result__snippet, .result-snippet")
         snippet = snippet_el.get_text(" ", strip=True) if snippet_el else ""
 
-        ad_id = "web_" + re.sub(r"[^a-z0-9]+", "_", href.lower())[:80]
+        # ID fra domene+sti UTEN query/fragment: samme side gir samme ID
+        # uansett hvilket søk som fant den (ellers re-varsles samme side under
+        # hvert av de ~190 dypsøk-ordene med litt ulik URL).
+        _pp = urlparse(href)
+        _norm = (_pp.netloc + _pp.path).lower().rstrip("/")
+        ad_id = "web_" + re.sub(r"[^a-z0-9]+", "_", _norm)[:80]
 
         return {
             "id":          ad_id,

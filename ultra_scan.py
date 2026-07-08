@@ -283,6 +283,15 @@ def run_deep(cfg, db, tg, fc):
                               + reason.replace("🟢 GRØNNE ERMER | ","").replace("🟢 GRØNNE ERMER","").strip(" |"))
                     score = max(1, score - 15)
 
+            # URL-nivå dedup: samme lenke skal ALDRI varsles to ganger, selv
+            # om ID-en varierer eller varen finnes på flere kilder. Normaliser
+            # (uten query/fragment) og marker i samme lager.
+            _u = (ad.get("url") or "").split("?")[0].split("#")[0].rstrip("/").lower()
+            if _u and not db.check_and_mark("url_" + _u, "urldedup",
+                                            ad.get("title", ""), ad.get("url", "")):
+                skipped_old += 1
+                continue
+
             tg.send_ad(ad, score=score, match_reason=reason)
             hits_by_source[src] += 1
             sent += 1

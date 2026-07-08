@@ -220,6 +220,12 @@ def _run_source(
                 # ── FLOM-VAKT ────────────────────────────────────────────
                 # Stopp utsending hvis én runde overstiger taket (14). Da er
                 # noe galt (filter-glipp) – heller varsle ÉN gang enn å flomme.
+                # URL-nivå dedup: samme lenke varsles aldri to ganger (selv om
+                # ID varierer eller varen finnes på flere kilder).
+                _u = (ad.get("url") or "").split("?")[0].split("#")[0].rstrip("/").lower()
+                if _u and not db.check_and_mark("url_" + _u, "urldedup",
+                                                ad.get("title", ""), ad.get("url", "")):
+                    continue
                 with _ALERT_LOCK:
                     global _alert_count, _suppressed
                     if _alert_count >= _ALERT_CAP:
