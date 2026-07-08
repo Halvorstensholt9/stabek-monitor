@@ -1011,6 +1011,20 @@ search:
   oldfootballshirts_keywords:
     - "stabæk"
 
+  # Subito.it (Italia) – internasjonal dekning; drakter dukker opp overalt.
+  subito_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "norway football shirt"
+    - "norvegia calcio"
+
+  # Leboncoin.fr (Frankrike)
+  leboncoin_keywords:
+    - "stabaek"
+    - "stabæk"
+    - "norway football shirt"
+    - "maillot norvege"
+
 filters:
   required_terms:
     - "stabæk"

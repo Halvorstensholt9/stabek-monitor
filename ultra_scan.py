@@ -47,6 +47,8 @@ from scrapers.facebook_marketplace  import FacebookMarketplaceScraper
 from scrapers.footballshirtcollective import FootballShirtCollectiveScraper
 from scrapers.kleinanzeigen          import KleinanzeigenScraper
 from scrapers.oldfootballshirts       import OldFootballShirtsScraper
+from scrapers.subito                   import SubitoScraper
+from scrapers.leboncoin                import LeboncoinScraper
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
@@ -272,6 +274,8 @@ def run_deep(cfg, db, tg, fc):
         ("fsc",         FootballShirtCollectiveScraper().search, 1.5),
         ("kleinanzeigen", KleinanzeigenScraper().search,    2.5),
         ("oldfootballshirts", OldFootballShirtsScraper().search, 2.0),
+        ("subito",      SubitoScraper().search,           2.0),
+        ("leboncoin",   LeboncoinScraper().search,        2.0),
     ]
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",
