@@ -21,22 +21,14 @@ jobs:
         run: |
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
-      # Path MÅ være identisk med monitor.yml (samme versjon-hash) for å kunne
-      # lese sent_log.jsonl m.m.
-      - name: Hent cache
+      # Revisjonen trenger bare sendt-loggen (egen cache) – ikke hovedbasen.
+      - name: Hent sendt-logg
         uses: actions/cache/restore@v4
         with:
-          path: |
-            seen_ads.jsonl
-            image_cache_v2.db
-            health_state.json
-            heartbeat_state.json
-            stats.json
-            deep_state.json
-            sent_log.jsonl
-          key: stabek-db-x
+          path: sent_log.jsonl
+          key: sent-log-x
           restore-keys: |
-            stabek-db-
+            sent-log-
       - name: Kjør nattlig revisjon
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

@@ -53,10 +53,19 @@ jobs:
             heartbeat_state.json
             stats.json
             deep_state.json
-            sent_log.jsonl
           key: stabek-db-${{ github.run_id }}
           restore-keys: |
             stabek-db-
+
+      # sent_log.jsonl i EGEN cache (ikke rør hoved-versjon-hashen over –
+      # ellers mister vi hele dedup-basen). Nattlig revisjon leser denne.
+      - name: Persistér sendt-logg
+        uses: actions/cache@v4
+        with:
+          path: sent_log.jsonl
+          key: sent-log-${{ github.run_id }}
+          restore-keys: |
+            sent-log-
 
       - name: Kjør 5-timers løkke
         env:
