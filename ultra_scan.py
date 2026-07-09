@@ -19,7 +19,7 @@ from typing import Dict, List
 import yaml
 
 from database       import Database
-from filters         import evaluate
+from filters         import evaluate, mentions_other_club
 from notifier        import Telegram
 from image_analyzer  import has_green_sleeve, grail_probability, grail_color_candidate
 
@@ -213,6 +213,10 @@ def grail_image_hunt(db, tg, vision_budget=40, download_cap=250):
                 if not url or not aid or (src, aid) in seen:
                     continue
                 seen.add((src, aid))
+                # KRYSS-SJEKK: heter drakta eksplisitt en annen klubb (f.eks.
+                # «Manchester United»), er det IKKE grålen – uansett grønt.
+                if mentions_other_club(ad.get("title", "")):
+                    continue
                 if db.is_seen(aid, src):        # allerede håndtert
                     continue
                 try:

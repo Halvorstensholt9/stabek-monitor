@@ -140,19 +140,23 @@ except Exception:
 
 suspicious = []
 try:
-    from filters import evaluate
+    from filters import evaluate, mentions_other_club
     fc = cfg["filters"]
     for d in sent:
-        ad = {"title": d.get("title", ""), "description": d.get("reason", "")}
+        title = d.get("title", "")
+        ad = {"title": title, "description": d.get("reason", "")}
         try:
             ok, _, _ = evaluate(ad, fc)
         except Exception:
             ok = True
-        low = (d.get("title", "") + " " + d.get("url", "")).lower()
+        low = (title + " " + d.get("url", "")).lower()
         spammy = any(p in low for p in
                      ("worldwide delivery", "we offer only", "for sale -"))
-        if (not ok) or spammy:
-            suspicious.append(d.get("title", "")[:38])
+        # Navngir drakta en ANNEN klubb (f.eks. Man Utd med grønn detalj)? feil.
+        other_club = mentions_other_club(title)
+        if (not ok) or spammy or other_club:
+            tag = " [annen klubb]" if other_club else (" [spam]" if spammy else "")
+            suspicious.append(title[:34] + tag)
 except Exception:
     pass
 

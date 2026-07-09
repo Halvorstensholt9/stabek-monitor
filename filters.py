@@ -13,6 +13,35 @@ CHILD_INDICATORS = {
 
 NEW_SEASON_PHRASES = {"ny sesong", "sesong 2024", "sesong 2025", "sesong 2026"}
 
+# Klubber som IKKE er Stabæk. Brukes til å luke bort «annen klubb»-drakter
+# selv om de har grønt på seg (f.eks. en Manchester United-drakt med grønn
+# detalj skal ALDRI regnes som grønn-arm-grålen). Kun distinkte navn.
+_OTHER_CLUBS = {
+    "manchester united", "man utd", "man united", "manchester city", "man city",
+    "liverpool", "arsenal", "chelsea", "tottenham", "everton", "newcastle",
+    "west ham", "leeds united", "aston villa", "wolves", "leicester",
+    "inter milan", "internazionale", " inter ", "ac milan", "juventus", "napoli",
+    "as roma", "lazio", "atalanta", "fiorentina", "sampdoria",
+    "barcelona", "real madrid", "atletico", "sevilla", "valencia",
+    "bayern", "dortmund", "schalke", "leverkusen",
+    "paris saint", " psg ", "marseille", "olympique",
+    "ajax", "psv", "feyenoord", "celtic", "rangers", "porto", "benfica",
+    "sporting", "galatasaray", "fenerbahce", "besiktas",
+    # norske klubber som IKKE er Stabæk
+    "rosenborg", "molde", " brann", "vålerenga", "valerenga", "lillestrøm",
+    "lillestrom", "viking fk", "sarpsborg", "bodø", "bodo/glimt", " glimt",
+    "tromsø", "tromso", "haugesund", "sandefjord", "kristiansund",
+    "aalesund", "ålesund", "ik start", "strømsgodset", "stromsgodset",
+    "hamkam", "fredrikstad", "kongsvinger", "mjøndalen", "sandnes ulf",
+}
+
+
+def mentions_other_club(text: str) -> bool:
+    """True hvis teksten navngir en ANNEN klubb enn Stabæk (da er det den
+    klubbens drakt, ikke grålen – uansett grønt)."""
+    t = " " + (text or "").lower() + " "
+    return any(c in t for c in _OTHER_CLUBS)
+
 
 def _text(ad: Dict) -> str:
     return (

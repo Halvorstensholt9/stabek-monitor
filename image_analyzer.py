@@ -194,6 +194,9 @@ _GRAIL_PROMPT = (
     "Give the PROBABILITY 0 to 100 that THIS shirt is that Stabæk blue-striped shirt with "
     "ONE green/teal sleeve. WITHOUT any green/teal sleeve = LOW (under 30). Blue-striped "
     "WITH one green/teal sleeve = HIGH (over 75), even if short-sleeve or no sponsor. "
+    "IMPORTANT: if this is clearly ANOTHER club's shirt (e.g. Manchester United, Inter, "
+    "Liverpool, Chelsea, a national team) or has a crest/badge that is NOT Stabæk, score "
+    "LOW (under 25) EVEN IF it has some green on it. "
     "Ignore green logos/backgrounds/grass. Reply with ONLY an integer 0-100."
 )
 
