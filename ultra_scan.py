@@ -196,8 +196,6 @@ def grail_image_hunt(db, tg, vision_budget=40, download_cap=250):
     srcs = [("finn", FinnScraper().search), ("tise", TiseScraper().search)]
     seen = set()
     downloaded = used = hits = 0
-    tg.send_text("🔎 <i>Bilde-jakt på generiske titler startet (fanger grålen der "
-                 "selgeren ikke nevner Stabæk)…</i>")
     for sname, fn in srcs:
         for q in queries:
             if used >= vision_budget or downloaded >= download_cap:
@@ -240,8 +238,7 @@ def grail_image_hunt(db, tg, vision_budget=40, download_cap=250):
                     hits += 1
     logger.info("Grål-bildejakt: %d lastet ned, %d Vision-kall, %d treff",
                 downloaded, used, hits)
-    tg.send_text(f"🔎 <b>Bilde-jakt ferdig:</b> {downloaded} bilder sjekket, "
-                 f"{used} dyp-analysert, <b>{hits} mulige grål-treff</b>.")
+    # Ingen «ferdig»-melding – selve grål-treffene (hvis noen) er varslingen.
     return hits
 
 
@@ -284,12 +281,7 @@ def run_deep(cfg, db, tg, fc):
 
     logger.info("═══ ULTRA-DYPT SØK starter: %d kilder × %d søk = %d operasjoner ═══",
                 len(sources), len(QUERIES), len(sources) * len(QUERIES))
-    tg.send_text(
-        f"🔬 <b>ULTRA-DYPT SØK starter</b>\n"
-        f"{len(sources)} kilder × {len(QUERIES)} søk = "
-        f"{len(sources) * len(QUERIES):,} operasjoner.\n"
-        f"Sammendrag når ferdig (~10–20 min)."
-    )
+    # Ingen «starter»-melding – kun ekte funn skal gi varsel.
 
     t0 = time.monotonic()
     results_by_source = {}
@@ -400,9 +392,11 @@ def run_deep(cfg, db, tg, fc):
         for src, title, score, reason in sample_hits[:8]:
             lines.append(f"[{score}] {title} <i>({reason})</i>")
 
-    tg.send_text("\n".join(lines))
-    logger.info("Rapport sendt til Telegram. Sent=%d, dedup=%d, filt=%d",
-                sent, skipped_old, skipped_filt)
+    # Send sammendrag KUN hvis dypsøket faktisk fant noe nytt – ellers stille.
+    if sent > 0:
+        tg.send_text("\n".join(lines))
+    logger.info("Rapport %s. Sent=%d, dedup=%d, filt=%d",
+                "sendt" if sent > 0 else "stille (0 treff)", sent, skipped_old, skipped_filt)
 
     # ── BILDE-FØRST på generiske titler (fanger grålen der tittelen er blank) ──
     try:

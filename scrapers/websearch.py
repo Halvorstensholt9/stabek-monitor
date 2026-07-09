@@ -196,6 +196,17 @@ class WebSearchScraper:
         snippet_el = result.select_one(".result__snippet, .result-snippet")
         snippet = snippet_el.get_text(" ", strip=True) if snippet_el else ""
 
+        # DROPSHIP/SEO-SPAM: sider som forwjd.shop og vintagesportsfashion.com
+        # lager en «Buy X for sale – Store» side for ETHVERT søk (de har ikke
+        # drakta – ren støy). De bruker samme mal: «worldwide delivery», «we
+        # offer only», «buy classic … in the … store». Blokkér den malen.
+        _blob = (title + " " + snippet).lower()
+        _SPAM = ("worldwide delivery", "we offer only", "buy classic ",
+                 "buy vintage ", "buy authentic ", " for sale -",
+                 "print on demand", "print-on-demand")
+        if any(p in _blob for p in _SPAM) or re.search(r"in the .{1,40} store", _blob):
+            return None
+
         # ID fra domene+sti UTEN query/fragment: samme side gir samme ID
         # uansett hvilket søk som fant den (ellers re-varsles samme side under
         # hvert av de ~190 dypsøk-ordene med litt ulik URL).
