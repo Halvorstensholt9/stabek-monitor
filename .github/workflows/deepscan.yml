@@ -31,12 +31,15 @@ jobs:
       - name: Gjenopprett database-cache
         uses: actions/cache@v4
         with:
+          # MÅ være identisk med monitor.yml (samme versjon-hash = deler cache).
           path: |
             seen_ads.jsonl
             image_cache_v2.db
             health_state.json
             heartbeat_state.json
             stats.json
+            deep_state.json
+            sent_log.jsonl
           key: stabek-db-${{ github.run_id }}
           restore-keys: |
             stabek-db-

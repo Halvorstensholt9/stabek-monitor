@@ -53,6 +53,7 @@ jobs:
             heartbeat_state.json
             stats.json
             deep_state.json
+            sent_log.jsonl
           key: stabek-db-${{ github.run_id }}
           restore-keys: |
             stabek-db-

@@ -67,6 +67,21 @@ class Telegram:
         )
 
     def send_ad(self, ad: Dict, score: int = 0, match_reason: str = "") -> bool:
+        # Logg ALT som sendes til sent_log.jsonl, så den nattlige revisjonen
+        # kan gå gjennom det og bekrefte at det var riktig.
+        try:
+            import json as _j, time as _t
+            with open("sent_log.jsonl", "a", encoding="utf-8") as _f:
+                _f.write(_j.dumps({
+                    "ts": _t.time(),
+                    "id": ad.get("id", ""), "source": ad.get("source", ""),
+                    "title": (ad.get("title") or "")[:200], "url": ad.get("url", ""),
+                    "price": ad.get("price", ""), "score": score,
+                    "reason": (match_reason or "")[:120],
+                }, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
         source_label = {"finn.no": "Finn.no", "ebay.co.uk": "eBay UK",
                         "ebay.de": "eBay DE"}.get(ad.get("source", ""), ad.get("source", ""))
 

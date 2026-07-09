@@ -1,0 +1,47 @@
+name: Stabæk Nattlig selvrevisjon (kl 02:00)
+
+# Går over ALT hver natt kl 02:00 (Oslo): alle kilder svarer? system OK?
+# gjennomgang av alt sendt siste døgn. Sender én rapport til Telegram.
+on:
+  schedule:
+    - cron: "0 0 * * *"     # 00:00 UTC = 02:00 Oslo (sommertid)
+  workflow_dispatch:
+
+# Restore-only (skriver aldri cache), så ingen concurrency-konflikt med søket.
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer avhengigheter
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      # Path MÅ være identisk med monitor.yml (samme versjon-hash) for å kunne
+      # lese sent_log.jsonl m.m.
+      - name: Hent cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            seen_ads.jsonl
+            image_cache_v2.db
+            health_state.json
+            heartbeat_state.json
+            stats.json
+            deep_state.json
+            sent_log.jsonl
+          key: stabek-db-x
+          restore-keys: |
+            stabek-db-
+      - name: Kjør nattlig revisjon
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cp config.template.yaml config.yaml
+          python nightly_audit.py

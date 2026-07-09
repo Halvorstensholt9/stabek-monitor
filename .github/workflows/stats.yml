@@ -35,6 +35,7 @@ jobs:
             heartbeat_state.json
             stats.json
             deep_state.json
+            sent_log.jsonl
           key: stabek-db-x   # treffer aldri eksakt → bruker restore-keys
           restore-keys: |
             stabek-db-
