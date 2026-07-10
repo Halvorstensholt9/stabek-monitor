@@ -138,6 +138,11 @@ try:
 except Exception:
     pass
 
+# Dump alt logget (for gjennomgang) – kilde | tittel | grunn.
+print(f"=== SENDT-LOGG ({len(sent)} oppføringer siste døgn) ===")
+for d in sent[-100:]:
+    print(f"  [{d.get('source','')}] {d.get('title','')[:60]} :: {d.get('reason','')[:45]}")
+
 suspicious = []
 try:
     from filters import evaluate, mentions_other_club
