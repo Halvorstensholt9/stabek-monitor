@@ -172,6 +172,13 @@ class WebSearchScraper:
             if sub in host:
                 return None
 
+        # Junk-/dropship-TLD-er: forwjd.shop-typen. Ekte vintage-butikker og
+        # markedsplasser bruker .com/.co.uk/.no/.de/.net – ikke disse billige
+        # TLD-ene som SEO-/dropship-sider massegenererer sider på.
+        if host.endswith((".shop", ".store", ".online", ".top", ".xyz",
+                          ".site", ".live", ".club", ".shopping", ".buzz")):
+            return None
+
         if href in seen_urls:
             return None
         seen_urls.add(href)
