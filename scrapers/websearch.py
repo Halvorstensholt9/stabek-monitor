@@ -200,6 +200,12 @@ class WebSearchScraper:
         if not _STAB_PAT.search(title) and not _PLAYER_PAT.search(title):
             return None
 
+        # Ikke en drakt til salgs? (Stabæk-forum, artikkel, diskusjon, nyhet,
+        # statistikk osv.) – det brukeren kalte «annonser til andre ting».
+        from filters import looks_like_non_listing
+        if looks_like_non_listing(title):
+            return None
+
         snippet_el = result.select_one(".result__snippet, .result-snippet")
         snippet = snippet_el.get_text(" ", strip=True) if snippet_el else ""
 

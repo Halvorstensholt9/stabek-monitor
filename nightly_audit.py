@@ -145,7 +145,7 @@ for d in sent[-100:]:
 
 suspicious = []
 try:
-    from filters import evaluate, mentions_other_club
+    from filters import evaluate, mentions_other_club, looks_like_non_listing
     fc = cfg["filters"]
     for d in sent:
         title = d.get("title", "")
@@ -157,10 +157,12 @@ try:
         low = (title + " " + d.get("url", "")).lower()
         spammy = any(p in low for p in
                      ("worldwide delivery", "we offer only", "for sale -"))
-        # Navngir drakta en ANNEN klubb (f.eks. Man Utd med grønn detalj)? feil.
         other_club = mentions_other_club(title)
-        if (not ok) or spammy or other_club:
-            tag = " [annen klubb]" if other_club else (" [spam]" if spammy else "")
+        non_listing = looks_like_non_listing(title)   # forum/artikkel/diskusjon
+        if (not ok) or spammy or other_club or non_listing:
+            tag = (" [annen klubb]" if other_club else
+                   " [ikke-annonse]" if non_listing else
+                   " [spam]" if spammy else "")
             suspicious.append(title[:34] + tag)
 except Exception:
     pass

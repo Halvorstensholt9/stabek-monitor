@@ -76,6 +76,12 @@ def _entry_to_ad(entry) -> Optional[Dict]:
     if not title:
         return None
 
+    # Reddit er mest diskusjon. Slipp bare gjennom hvis det ser ut som salg,
+    # ikke en forum-tråd/kampreferat/nyhet.
+    from filters import looks_like_non_listing
+    if looks_like_non_listing(title):
+        return None
+
     # <link href="..." />
     link_el = entry.find("atom:link", _NS)
     url = link_el.get("href") if link_el is not None else ""

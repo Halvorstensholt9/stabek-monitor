@@ -43,6 +43,28 @@ def mentions_other_club(text: str) -> bool:
     return any(c in t for c in _OTHER_CLUBS)
 
 
+# Ord som avslører at en nettside/innlegg IKKE er en drakt til salgs, men
+# forum, artikkel, diskusjon, nyhet, statistikk osv. Brukes på websearch/
+# reddit-titler (ikke på markedsplass-annonser).
+_NON_LISTING = {
+    "forum", "diskusjon", "discussion", "thread", "tråd", "supporterklubb",
+    "supporter club", "fanclub", "fanklubb", "wiki", "leksikon", "wikipedia",
+    "fandom", "artikkel", "article", "nyhet", "nyheter", " news", "intervju",
+    "interview", "blogg", "blog", "reportasje", "kampreferat", "referat",
+    "kamprapport", "match report", "match preview", "highlights", "livestream",
+    "se direkte", "overganger", "overgangsrykte", "rykte", "spillerbørs",
+    "tabell", "resultater", "terminliste", "quiz", "lineup", "starting xi",
+    "wikipedia.org", "transfermarkt", "statistikk", "profil", "biografi",
+}
+
+
+def looks_like_non_listing(text: str) -> bool:
+    """True hvis tittelen ser ut som forum/artikkel/diskusjon – ikke en drakt
+    til salgs."""
+    t = " " + (text or "").lower() + " "
+    return any(w in t for w in _NON_LISTING)
+
+
 def _text(ad: Dict) -> str:
     return (
         (ad.get("title") or "") + " " + (ad.get("description") or "")
